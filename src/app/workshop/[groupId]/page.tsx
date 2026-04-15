@@ -13,6 +13,12 @@ const GRID_ROWS = [
 ]
 const COL_HEADERS = ['עבר', 'הווה', 'עתיד']
 
+const TIME_COLORS: Record<string, { bg: string; text: string; border: string; badge: string }> = {
+  past: { bg: 'rgba(217, 119, 6, 0.08)', text: '#92400E', border: 'rgba(217, 119, 6, 0.25)', badge: '#D97706' },
+  present: { bg: 'rgba(13, 148, 136, 0.08)', text: '#134E4A', border: 'rgba(13, 148, 136, 0.25)', badge: '#0D9488' },
+  future: { bg: 'rgba(99, 102, 241, 0.08)', text: '#312E81', border: 'rgba(99, 102, 241, 0.25)', badge: '#6366F1' },
+}
+
 type WindowCounts = Record<number, Record<NoteType | 'total', number>>
 
 export default function WorkshopGrid() {
@@ -83,6 +89,8 @@ export default function WorkshopGrid() {
   }
 
   const nextStep = getNextStep()
+  const totalNotes = Object.values(counts).reduce((s, c) => s + c.total, 0)
+  const filledWindows = Object.keys(counts).length
 
   return (
     <main className="min-h-screen px-4 py-6 max-w-5xl mx-auto page-enter relative">
@@ -93,76 +101,96 @@ export default function WorkshopGrid() {
             onClick={() =>
               router.push(challenge ? `/challenge/${challenge.id}` : '/')
             }
-            className="text-teal-600/60 hover:text-teal-700 text-sm mb-2 flex items-center gap-1 cursor-pointer"
+            className="text-gray-400 hover:text-gray-600 text-sm mb-2 flex items-center gap-1 cursor-pointer"
           >
             <span>&rarr;</span>
             <span>חזרה</span>
           </button>
-          <h1 className="text-2xl font-bold text-teal-900">
+          <h1 className="text-2xl font-bold text-gray-900">
             {group?.name}
           </h1>
           {challenge && (
-            <p className="text-sm text-teal-600/60 mt-1">{challenge.name}</p>
+            <p className="text-sm text-gray-500 mt-1">{challenge.name}</p>
           )}
         </div>
         <button
           onClick={handleExport}
-          className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-teal-200/50 rounded-xl text-sm font-medium text-teal-700 hover:bg-teal-50 hover:border-teal-300 transition-colors cursor-pointer"
+          className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors cursor-pointer"
         >
           ייצוא לטקסט
         </button>
       </div>
 
-      {/* Pool metaphor instruction */}
-      <div className="bg-gradient-to-l from-teal-50/80 to-teal-100/40 rounded-2xl p-5 mb-8 border border-teal-200/30 backdrop-blur-sm">
-        <p className="text-sm text-teal-800 leading-relaxed">
-          <strong>מלאו את בריכת הידע:</strong>{' '}
-          התחילו מחלון 1 במרכז והתרחבו החוצה לפי המספרים.
-          כל חלון מוסיף שכבה חדשה של הבנה.
-          לחצו על חלון כדי לצלול פנימה.
-        </p>
+      {/* Pool status bar */}
+      <div className="bg-gradient-to-r from-cyan-50 to-teal-50 rounded-2xl p-5 mb-6 border border-teal-200/40 relative">
+        <div className="flex items-center justify-between relative z-10">
+          <div>
+            <p className="text-sm text-teal-800 font-bold mb-1">
+              בריכת הידע
+            </p>
+            <p className="text-xs text-teal-600/70">
+              {filledWindows}/9 חלונות מלאים &middot; {totalNotes} פתקים
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-36 h-3 bg-white/60 rounded-full overflow-hidden border border-teal-200/30">
+              <div
+                className="h-full depth-fill rounded-full"
+                style={{ width: `${Math.round((filledWindows / 9) * 100)}%` }}
+              />
+            </div>
+            <span className="text-xs font-bold text-teal-700">
+              {Math.round((filledWindows / 9) * 100)}%
+            </span>
+          </div>
+        </div>
+        {/* Subtle wave */}
+        <div className="wave-bottom absolute inset-0 pointer-events-none" />
       </div>
 
-      {/* RTL Grid - natural reading direction */}
-      <div className="overflow-x-auto">
-        <div className="min-w-[600px]">
+      {/* Instruction */}
+      <p className="text-sm text-gray-500 mb-6 text-center">
+        <strong className="text-gray-700">התחילו מחלון 1</strong> במרכז והתרחבו החוצה לפי המספרים. לחצו על חלון כדי לצלול פנימה.
+      </p>
+
+      {/* THE POOL — 3x3 grid inside a pool container */}
+      <div className="pool-container p-4 sm:p-6 mb-8 relative">
+        <div className="min-w-[560px]">
           {/* Column headers */}
-          <div className="grid grid-cols-[80px_1fr_1fr_1fr] gap-3 mb-3">
+          <div className="grid grid-cols-[70px_1fr_1fr_1fr] gap-3 mb-3">
             <div />
-            {COL_HEADERS.map((h) => (
-              <div
-                key={h}
-                className="text-center text-sm font-semibold text-teal-600/70"
-              >
-                {h}
-              </div>
-            ))}
+            {COL_HEADERS.map((h, i) => {
+              const timeKey = ['past', 'present', 'future'][i]
+              return (
+                <div
+                  key={h}
+                  className="text-center text-sm font-bold rounded-lg py-1.5"
+                  style={{ color: 'white', textShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
+                >
+                  {h}
+                </div>
+              )
+            })}
           </div>
 
           {/* Grid rows */}
-          {GRID_ROWS.map((row, rowIdx) => (
+          {GRID_ROWS.map((row) => (
             <div
               key={row.label}
-              className="grid grid-cols-[80px_1fr_1fr_1fr] gap-3 mb-3"
+              className="grid grid-cols-[70px_1fr_1fr_1fr] gap-3 mb-3"
             >
-              <div className="flex items-center justify-center text-sm font-semibold text-teal-600/70">
+              <div className="flex items-center justify-center text-xs font-bold text-white/80 text-center leading-tight"
+                style={{ textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
                 {row.label}
               </div>
 
-              {row.windows.map((wNum, colIdx) => {
+              {row.windows.map((wNum) => {
                 const win = WINDOWS.find((w) => w.number === wNum)!
                 const wCounts = counts[wNum]
                 const total = wCounts?.total || 0
                 const isNext = wNum === nextStep
                 const isCenter = wNum === 1
-
-                // Pool depth: center is deepest, edges are lighter
-                const depthLevel = isCenter ? 3 : (rowIdx === 1 || colIdx === 1) ? 2 : 1
-                const depthStyles = [
-                  'from-white to-teal-50/30',
-                  'from-white to-teal-50/50',
-                  'from-teal-50/30 to-teal-100/40',
-                ][depthLevel - 1]
+                const timeColors = TIME_COLORS[win.timeFrame]
 
                 return (
                   <button
@@ -170,38 +198,41 @@ export default function WorkshopGrid() {
                     onClick={() =>
                       router.push(`/workshop/${groupId}/window/${wNum}`)
                     }
-                    className={`grid-cell relative bg-gradient-to-br ${depthStyles} rounded-2xl p-4 border cursor-pointer text-right ${
-                      isCenter
-                        ? 'border-teal-300/60 shadow-md shadow-teal-100/50'
-                        : 'border-teal-200/40 shadow-sm'
+                    className={`pool-tile rounded-2xl p-4 cursor-pointer text-right ${
+                      isCenter ? 'ring-2 ring-white/40 shadow-lg' : ''
                     } ${isNext ? 'ripple-active' : ''}`}
+                    style={{
+                      background: total > 0
+                        ? `linear-gradient(145deg, rgba(255,255,255,0.9), ${timeColors.bg})`
+                        : 'rgba(255,255,255,0.75)',
+                    }}
                   >
-                    {/* Step number */}
+                    {/* Step number badge */}
                     <div className="flex items-center justify-between mb-2">
                       <span
-                        className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-all ${
-                          total > 0
-                            ? 'bg-gradient-to-br from-teal-500 to-teal-700 text-white shadow-sm'
-                            : isNext
-                              ? 'bg-teal-100 text-teal-700 border border-teal-300'
-                              : 'bg-teal-50 text-teal-500 border border-teal-200/50'
-                        }`}
+                        className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-all"
+                        style={{
+                          background: total > 0 ? timeColors.badge : 'rgba(255,255,255,0.8)',
+                          color: total > 0 ? 'white' : '#9CA3AF',
+                          boxShadow: total > 0 ? `0 2px 8px ${timeColors.badge}40` : 'none',
+                          border: total > 0 ? 'none' : '1px solid rgba(0,0,0,0.1)',
+                        }}
                       >
                         {wNum}
                       </span>
                       {total > 0 && (
-                        <span className="text-[10px] text-teal-500/60">
+                        <span className="text-[10px] font-medium" style={{ color: timeColors.text }}>
                           {total} פתקים
                         </span>
                       )}
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-xs font-semibold text-teal-800 mb-1 line-clamp-1">
+                    <h3 className="text-xs font-semibold mb-1 line-clamp-1" style={{ color: total > 0 ? timeColors.text : '#6B7280' }}>
                       {win.subtitle}
                     </h3>
 
-                    {/* Type breakdown */}
+                    {/* Type breakdown mini badges */}
                     {total > 0 && wCounts && (
                       <div className="flex gap-1 mt-2 flex-wrap">
                         {(['question', 'knowledge', 'thought'] as NoteType[]).map(
@@ -209,7 +240,7 @@ export default function WorkshopGrid() {
                             wCounts[type] > 0 && (
                               <span
                                 key={type}
-                                className={`text-[9px] px-1.5 py-0.5 rounded-full ${NOTE_TYPE_CONFIG[type].bgClass} ${NOTE_TYPE_CONFIG[type].textClass}`}
+                                className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${NOTE_TYPE_CONFIG[type].bgClass} ${NOTE_TYPE_CONFIG[type].textClass}`}
                               >
                                 {wCounts[type]}
                               </span>
@@ -218,9 +249,9 @@ export default function WorkshopGrid() {
                       </div>
                     )}
 
-                    {/* Next indicator */}
+                    {/* Next step indicator */}
                     {isNext && total === 0 && (
-                      <p className="text-[10px] text-teal-500 mt-2 font-medium">
+                      <p className="text-[10px] mt-2 font-bold animate-pulse" style={{ color: timeColors.badge }}>
                         צללו לכאן
                       </p>
                     )}
@@ -233,15 +264,20 @@ export default function WorkshopGrid() {
       </div>
 
       {/* Legend */}
-      <div className="mt-8 flex flex-wrap gap-5 justify-center">
+      <div className="flex flex-wrap gap-6 justify-center mb-4">
         {(['question', 'knowledge', 'thought'] as NoteType[]).map((type) => (
-          <div key={type} className="flex items-center gap-2 text-xs text-teal-700/60">
-            <span
-              className={`w-3 h-3 rounded-full ${NOTE_TYPE_CONFIG[type].dotClass}`}
-            />
+          <div key={type} className="flex items-center gap-2 text-xs text-gray-500">
+            <span className={`w-3 h-3 rounded-full ${NOTE_TYPE_CONFIG[type].dotClass}`} />
             {NOTE_TYPE_CONFIG[type].label}
           </div>
         ))}
+      </div>
+
+      {/* Time frame legend */}
+      <div className="flex flex-wrap gap-4 justify-center text-[10px] text-gray-400">
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: TIME_COLORS.past.badge }} /> עבר</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: TIME_COLORS.present.badge }} /> הווה</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: TIME_COLORS.future.badge }} /> עתיד</span>
       </div>
     </main>
   )

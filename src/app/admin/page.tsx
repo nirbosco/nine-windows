@@ -18,6 +18,12 @@ interface GroupData {
   notes: Note[]
 }
 
+const POSTIT_CLASSES: Record<NoteType, string> = {
+  question: 'postit-question',
+  knowledge: 'postit-knowledge',
+  thought: 'postit-thought',
+}
+
 export default function AdminPage() {
   const [challenges, setChallenges] = useState<Challenge[]>([])
   const [selectedChallenge, setSelectedChallenge] = useState<string | null>(null)
@@ -150,7 +156,7 @@ export default function AdminPage() {
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full" />
       </main>
     )
   }
@@ -161,8 +167,8 @@ export default function AdminPage() {
     <main className="min-h-screen px-4 py-6 max-w-7xl mx-auto page-enter">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-teal-900">דשבורד ניהול</h1>
-          <p className="text-sm text-teal-600/60">תשעת החלונות - אדוות</p>
+          <h1 className="text-2xl font-bold text-gray-900">דשבורד ניהול</h1>
+          <p className="text-sm text-gray-500">תשעת החלונות - אדוות</p>
         </div>
         <a
           href="/"
@@ -183,8 +189,8 @@ export default function AdminPage() {
             }}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
               selectedChallenge === c.id
-                ? 'bg-gradient-to-br from-teal-500 to-teal-700 text-white'
-                : 'bg-white border border-teal-200/40 text-teal-700 hover:border-teal-300'
+                ? 'bg-gradient-to-br from-teal-500 to-cyan-600 text-white shadow-sm'
+                : 'bg-white border border-gray-200 text-gray-700 hover:border-teal-300'
             }`}
           >
             {c.name}
@@ -195,32 +201,32 @@ export default function AdminPage() {
       {/* Stats bar */}
       {groupsData.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl p-4 border border-teal-200/40">
-            <p className="text-2xl font-bold text-teal-900">
+          <div className="bg-white rounded-xl p-4 border border-gray-200">
+            <p className="text-2xl font-bold text-gray-900">
               {groupsData.length}
             </p>
-            <p className="text-xs text-teal-600/60">קבוצות</p>
+            <p className="text-xs text-gray-500">קבוצות</p>
           </div>
-          <div className="bg-white rounded-xl p-4 border border-teal-200/40">
-            <p className="text-2xl font-bold text-teal-900">
+          <div className="bg-white rounded-xl p-4 border border-gray-200">
+            <p className="text-2xl font-bold text-gray-900">
               {groupsData.reduce((s, g) => s + g.members.length, 0)}
             </p>
-            <p className="text-xs text-teal-600/60">משתתפים</p>
+            <p className="text-xs text-gray-500">משתתפים</p>
           </div>
-          <div className="bg-white rounded-xl p-4 border border-teal-200/40">
-            <p className="text-2xl font-bold text-teal-900">
+          <div className="bg-white rounded-xl p-4 border border-gray-200">
+            <p className="text-2xl font-bold text-gray-900">
               {groupsData.reduce((s, g) => s + g.notes.length, 0)}
             </p>
-            <p className="text-xs text-teal-600/60">פתקים</p>
+            <p className="text-xs text-gray-500">פתקים</p>
           </div>
-          <div className="bg-white rounded-xl p-4 border border-teal-200/40">
+          <div className="bg-white rounded-xl p-4 border border-gray-200">
             <button
               onClick={handleExportAll}
               className="text-sm text-teal-600 font-medium hover:text-teal-700 cursor-pointer"
             >
               ייצוא כל הקבוצות
             </button>
-            <p className="text-xs text-teal-600/60 mt-1">הורדת קבצי טקסט</p>
+            <p className="text-xs text-gray-500 mt-1">הורדת קבצי טקסט</p>
           </div>
         </div>
       )}
@@ -228,9 +234,9 @@ export default function AdminPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
         {/* Groups sidebar */}
         <div className="space-y-2">
-          <h2 className="text-sm font-bold text-teal-700 mb-3">קבוצות</h2>
+          <h2 className="text-sm font-bold text-gray-700 mb-3">קבוצות</h2>
           {groupsData.length === 0 ? (
-            <p className="text-sm text-teal-500/50">אין קבוצות עדיין</p>
+            <p className="text-sm text-gray-400">אין קבוצות עדיין</p>
           ) : (
             groupsData.map((gd) => (
               <button
@@ -238,17 +244,17 @@ export default function AdminPage() {
                 onClick={() => setSelectedGroup(gd.group.id)}
                 className={`w-full text-right p-3 rounded-xl text-sm transition-all cursor-pointer ${
                   selectedGroup === gd.group.id
-                    ? 'bg-teal-50 border border-teal-200 text-teal-900'
-                    : 'bg-white border border-teal-200/40 text-teal-700 hover:border-teal-300'
+                    ? 'bg-teal-50 border border-teal-200 text-gray-900'
+                    : 'bg-white border border-gray-200 text-gray-700 hover:border-teal-300'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-teal-500/50">
+                  <span className="text-xs text-gray-400">
                     {gd.notes.length} פתקים
                   </span>
                   <span className="font-semibold">{gd.group.name}</span>
                 </div>
-                <p className="text-xs text-teal-500/50 mt-1">
+                <p className="text-xs text-gray-400 mt-1">
                   {gd.members.map((m) => m.name).join(', ')}
                 </p>
               </button>
@@ -260,7 +266,7 @@ export default function AdminPage() {
         {activeGroupData ? (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-teal-900">
+              <h2 className="text-lg font-bold text-gray-900">
                 {activeGroupData.group.name}
               </h2>
               <div className="flex gap-2 items-center">
@@ -270,7 +276,7 @@ export default function AdminPage() {
                   onChange={(e) =>
                     setFilterType(e.target.value as NoteType | 'all')
                   }
-                  className="px-3 py-1.5 border border-teal-200/40 rounded-lg text-sm bg-white"
+                  className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-white"
                 >
                   <option value="all">כל הסוגים</option>
                   <option value="question">שאלות</option>
@@ -280,7 +286,7 @@ export default function AdminPage() {
 
                 <button
                   onClick={() => handleExport(activeGroupData)}
-                  className="px-4 py-1.5 bg-gradient-to-br from-teal-500 to-teal-700 text-white text-sm rounded-lg hover:bg-teal-700 cursor-pointer"
+                  className="px-4 py-1.5 bg-gradient-to-br from-teal-500 to-cyan-600 text-white text-sm rounded-lg hover:brightness-110 cursor-pointer"
                 >
                   ייצוא
                 </button>
@@ -299,55 +305,54 @@ export default function AdminPage() {
                 return (
                   <div
                     key={win.number}
-                    className="bg-white rounded-xl border border-teal-200/40 overflow-hidden"
+                    className="bg-white rounded-xl border border-gray-200 overflow-hidden"
                   >
-                    <div className="px-4 py-3 bg-teal-50/30 border-b border-teal-200/40 flex items-center justify-between">
+                    <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <span className="flex items-center justify-center w-7 h-7 rounded-full bg-teal-100 text-teal-700 text-xs font-bold">
+                        <span className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-teal-500 to-cyan-600 text-white text-xs font-bold">
                           {win.number}
                         </span>
                         <div>
-                          <span className="text-sm font-semibold text-teal-800">
+                          <span className="text-sm font-semibold text-gray-800">
                             {win.title}
                           </span>
-                          <span className="text-xs text-teal-600/60 mr-2">
+                          <span className="text-xs text-gray-500 mr-2">
                             {' '}
                             - {win.subtitle}
                           </span>
                         </div>
                       </div>
-                      <span className="text-xs text-teal-500/50">
+                      <span className="text-xs text-gray-400">
                         {windowNotes.length} פתקים
                       </span>
                     </div>
 
                     {windowNotes.length > 0 && (
-                      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                        {windowNotes.map((note) => {
+                      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {windowNotes.map((note, idx) => {
                           const config = NOTE_TYPE_CONFIG[note.note_type]
+                          const rotation = ((idx % 5) - 2) * 0.8
+
                           return (
                             <div
                               key={note.id}
-                              className={`rounded-lg p-3 border ${config.bgClass} ${config.borderClass}`}
+                              className={`postit ${POSTIT_CLASSES[note.note_type]} rounded-sm`}
+                              style={{ transform: `rotate(${rotation}deg)` }}
                             >
                               <div className="flex items-center gap-2 mb-1">
                                 <span
                                   className={`w-2 h-2 rounded-full ${config.dotClass}`}
                                 />
-                                <span
-                                  className={`text-[10px] font-medium ${config.textClass}`}
-                                >
+                                <span className="text-[10px] font-bold opacity-70">
                                   {config.label}
                                 </span>
                               </div>
-                              <p
-                                className={`text-sm leading-relaxed ${config.textClass}`}
-                              >
+                              <p className="text-sm leading-relaxed">
                                 {note.content}
                               </p>
                               {note.author_name && (
-                                <p className="text-[10px] text-teal-500/50 mt-2">
-                                  {note.author_name}
+                                <p className="text-[10px] opacity-50 mt-2">
+                                  — {note.author_name}
                                 </p>
                               )}
                             </div>
@@ -361,7 +366,7 @@ export default function AdminPage() {
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center text-teal-500/50 text-sm py-20">
+          <div className="flex items-center justify-center text-gray-400 text-sm py-20">
             בחרו קבוצה מהרשימה
           </div>
         )}
