@@ -34,7 +34,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-full flex flex-col bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
+      <body className="min-h-full flex flex-col bg-gradient-to-b from-pool-mist via-white to-pool-foam/30">
         {children}
       </body>
     </html>

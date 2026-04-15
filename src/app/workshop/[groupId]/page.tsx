@@ -7,9 +7,9 @@ import { WINDOWS } from '@/lib/windows-data'
 import { Challenge, Group, NoteType, NOTE_TYPE_CONFIG } from '@/lib/types'
 
 const GRID_ROWS = [
-  { label: 'מערכת-על', level: 'super', windows: [4, 3, 7] },
-  { label: 'מערכת', level: 'system', windows: [5, 1, 9] },
-  { label: 'תת-מערכת', level: 'sub', windows: [6, 2, 8] },
+  { label: 'מערכת-על', windows: [4, 3, 7] },
+  { label: 'מערכת', windows: [5, 1, 9] },
+  { label: 'תת-מערכת', windows: [6, 2, 8] },
 ]
 const COL_HEADERS = ['עבר', 'הווה', 'עתיד']
 
@@ -71,13 +71,13 @@ export default function WorkshopGrid() {
   }
 
   function handleExport() {
-    exportGroupData(groupId, group, challenge, counts)
+    exportGroupData(groupId, group, challenge)
   }
 
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full" />
       </main>
     )
   }
@@ -85,46 +85,46 @@ export default function WorkshopGrid() {
   const nextStep = getNextStep()
 
   return (
-    <main className="min-h-screen px-4 py-6 max-w-5xl mx-auto page-enter">
+    <main className="min-h-screen px-4 py-6 max-w-5xl mx-auto page-enter relative">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <button
             onClick={() =>
-              router.push(
-                challenge ? `/challenge/${challenge.id}` : '/'
-              )
+              router.push(challenge ? `/challenge/${challenge.id}` : '/')
             }
-            className="text-slate-500 hover:text-slate-700 text-sm mb-2 flex items-center gap-1 cursor-pointer"
+            className="text-teal-600/60 hover:text-teal-700 text-sm mb-2 flex items-center gap-1 cursor-pointer"
           >
             <span>&rarr;</span>
             <span>חזרה</span>
           </button>
-          <h1 className="text-2xl font-bold text-slate-900">
+          <h1 className="text-2xl font-bold text-teal-900">
             {group?.name}
           </h1>
           {challenge && (
-            <p className="text-sm text-slate-500 mt-1">{challenge.name}</p>
+            <p className="text-sm text-teal-600/60 mt-1">{challenge.name}</p>
           )}
         </div>
         <button
           onClick={handleExport}
-          className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors cursor-pointer"
+          className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-teal-200/50 rounded-xl text-sm font-medium text-teal-700 hover:bg-teal-50 hover:border-teal-300 transition-colors cursor-pointer"
         >
           ייצוא לטקסט
         </button>
       </div>
 
-      {/* Instructions */}
-      <div className="bg-indigo-50/50 rounded-xl p-4 mb-8 border border-indigo-100">
-        <p className="text-sm text-indigo-800">
-          <strong>סדר העבודה:</strong> מלאו את החלונות לפי המספרים 1 עד 9. התחילו
-          מהמרכז (הווה של המערכת) והתרחבו החוצה. לחצו על חלון כדי להיכנס אליו.
+      {/* Pool metaphor instruction */}
+      <div className="bg-gradient-to-l from-teal-50/80 to-teal-100/40 rounded-2xl p-5 mb-8 border border-teal-200/30 backdrop-blur-sm">
+        <p className="text-sm text-teal-800 leading-relaxed">
+          <strong>מלאו את בריכת הידע:</strong>{' '}
+          התחילו מחלון 1 במרכז והתרחבו החוצה לפי המספרים.
+          כל חלון מוסיף שכבה חדשה של הבנה.
+          לחצו על חלון כדי לצלול פנימה.
         </p>
       </div>
 
-      {/* Grid */}
-      <div dir="ltr" className="overflow-x-auto">
+      {/* RTL Grid - natural reading direction */}
+      <div className="overflow-x-auto">
         <div className="min-w-[600px]">
           {/* Column headers */}
           <div className="grid grid-cols-[80px_1fr_1fr_1fr] gap-3 mb-3">
@@ -132,8 +132,7 @@ export default function WorkshopGrid() {
             {COL_HEADERS.map((h) => (
               <div
                 key={h}
-                className="text-center text-sm font-semibold text-slate-500"
-                dir="rtl"
+                className="text-center text-sm font-semibold text-teal-600/70"
               >
                 {h}
               </div>
@@ -141,24 +140,29 @@ export default function WorkshopGrid() {
           </div>
 
           {/* Grid rows */}
-          {GRID_ROWS.map((row) => (
+          {GRID_ROWS.map((row, rowIdx) => (
             <div
               key={row.label}
               className="grid grid-cols-[80px_1fr_1fr_1fr] gap-3 mb-3"
             >
-              <div
-                className="flex items-center justify-center text-sm font-semibold text-slate-500"
-                dir="rtl"
-              >
+              <div className="flex items-center justify-center text-sm font-semibold text-teal-600/70">
                 {row.label}
               </div>
 
-              {row.windows.map((wNum) => {
+              {row.windows.map((wNum, colIdx) => {
                 const win = WINDOWS.find((w) => w.number === wNum)!
                 const wCounts = counts[wNum]
                 const total = wCounts?.total || 0
                 const isNext = wNum === nextStep
                 const isCenter = wNum === 1
+
+                // Pool depth: center is deepest, edges are lighter
+                const depthLevel = isCenter ? 3 : (rowIdx === 1 || colIdx === 1) ? 2 : 1
+                const depthStyles = [
+                  'from-white to-teal-50/30',
+                  'from-white to-teal-50/50',
+                  'from-teal-50/30 to-teal-100/40',
+                ][depthLevel - 1]
 
                 return (
                   <button
@@ -166,39 +170,38 @@ export default function WorkshopGrid() {
                     onClick={() =>
                       router.push(`/workshop/${groupId}/window/${wNum}`)
                     }
-                    dir="rtl"
-                    className={`grid-cell relative bg-white rounded-xl p-4 border cursor-pointer text-right ${
+                    className={`grid-cell relative bg-gradient-to-br ${depthStyles} rounded-2xl p-4 border cursor-pointer text-right ${
                       isCenter
-                        ? 'border-indigo-300 shadow-md'
-                        : 'border-slate-200 shadow-sm'
-                    } ${isNext ? 'pulse-active' : ''}`}
+                        ? 'border-teal-300/60 shadow-md shadow-teal-100/50'
+                        : 'border-teal-200/40 shadow-sm'
+                    } ${isNext ? 'ripple-active' : ''}`}
                   >
                     {/* Step number */}
                     <div className="flex items-center justify-between mb-2">
                       <span
-                        className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
+                        className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-all ${
                           total > 0
-                            ? 'bg-indigo-600 text-white'
+                            ? 'bg-gradient-to-br from-teal-500 to-teal-700 text-white shadow-sm'
                             : isNext
-                              ? 'bg-indigo-100 text-indigo-700'
-                              : 'bg-slate-100 text-slate-500'
+                              ? 'bg-teal-100 text-teal-700 border border-teal-300'
+                              : 'bg-teal-50 text-teal-500 border border-teal-200/50'
                         }`}
                       >
                         {wNum}
                       </span>
                       {total > 0 && (
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-[10px] text-teal-500/60">
                           {total} פתקים
                         </span>
                       )}
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-xs font-semibold text-slate-800 mb-1 line-clamp-1">
+                    <h3 className="text-xs font-semibold text-teal-800 mb-1 line-clamp-1">
                       {win.subtitle}
                     </h3>
 
-                    {/* Type breakdown dots */}
+                    {/* Type breakdown */}
                     {total > 0 && wCounts && (
                       <div className="flex gap-1 mt-2 flex-wrap">
                         {(['question', 'knowledge', 'thought'] as NoteType[]).map(
@@ -217,8 +220,8 @@ export default function WorkshopGrid() {
 
                     {/* Next indicator */}
                     {isNext && total === 0 && (
-                      <p className="text-[10px] text-indigo-500 mt-2 font-medium">
-                        השלב הבא
+                      <p className="text-[10px] text-teal-500 mt-2 font-medium">
+                        צללו לכאן
                       </p>
                     )}
                   </button>
@@ -230,9 +233,9 @@ export default function WorkshopGrid() {
       </div>
 
       {/* Legend */}
-      <div className="mt-8 flex flex-wrap gap-4 justify-center">
+      <div className="mt-8 flex flex-wrap gap-5 justify-center">
         {(['question', 'knowledge', 'thought'] as NoteType[]).map((type) => (
-          <div key={type} className="flex items-center gap-2 text-xs text-slate-600">
+          <div key={type} className="flex items-center gap-2 text-xs text-teal-700/60">
             <span
               className={`w-3 h-3 rounded-full ${NOTE_TYPE_CONFIG[type].dotClass}`}
             />
@@ -248,7 +251,6 @@ async function exportGroupData(
   groupId: string,
   group: Group | null,
   challenge: Challenge | null,
-  _counts: WindowCounts
 ) {
   const { data: members } = await supabase
     .from('group_members')

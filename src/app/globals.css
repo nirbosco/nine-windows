@@ -1,26 +1,51 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #1e293b;
-  --primary: #4f46e5;
-  --primary-light: #818cf8;
-  --primary-dark: #3730a3;
-  --note-question-bg: #eff6ff;
-  --note-question-border: #93c5fd;
-  --note-knowledge-bg: #ecfdf5;
-  --note-knowledge-border: #6ee7b7;
-  --note-thought-bg: #fffbeb;
-  --note-thought-border: #fcd34d;
+  /* Pool theme palette */
+  --pool-deep: #0F766E;
+  --pool-mid: #0D9488;
+  --pool-surface: #14B8A6;
+  --pool-shallow: #5EEAD4;
+  --pool-light: #99F6E4;
+  --pool-foam: #CCFBF1;
+  --pool-mist: #F0FDFA;
+
+  --sand-warm: #FBBF24;
+  --sand-light: #FEF3C7;
+  --coral: #F97316;
+  --coral-light: #FED7AA;
+
+  --background: #f8fffe;
+  --foreground: #134E4A;
+
+  /* Note colors - pool-inspired */
+  --note-question-bg: #E0F2FE;
+  --note-question-border: #7DD3FC;
+  --note-question-text: #0C4A6E;
+
+  --note-knowledge-bg: #CCFBF1;
+  --note-knowledge-border: #5EEAD4;
+  --note-knowledge-text: #134E4A;
+
+  --note-thought-bg: #FEF3C7;
+  --note-thought-border: #FCD34D;
+  --note-thought-text: #78350F;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-light: var(--primary-light);
-  --color-primary-dark: var(--primary-dark);
-  --font-sans: 'Heebo', var(--font-geist-sans), Arial, sans-serif;
+  --color-pool-deep: var(--pool-deep);
+  --color-pool-mid: var(--pool-mid);
+  --color-pool-surface: var(--pool-surface);
+  --color-pool-shallow: var(--pool-shallow);
+  --color-pool-light: var(--pool-light);
+  --color-pool-foam: var(--pool-foam);
+  --color-pool-mist: var(--pool-mist);
+  --color-sand-warm: var(--sand-warm);
+  --color-sand-light: var(--sand-light);
+  --color-coral: var(--coral);
+  --font-sans: 'Heebo', Arial, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
@@ -30,32 +55,115 @@ body {
   font-family: 'Heebo', Arial, Helvetica, sans-serif;
 }
 
-/* Post-it note styles */
-.note-card {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-.note-card:hover {
-  transform: translateY(-2px) rotate(0deg) !important;
-  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.15);
+/* ====== WATER EFFECTS ====== */
+
+/* Subtle wave SVG pattern for backgrounds */
+.wave-bg::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 60'%3E%3Cpath d='M0,30 C200,60 400,0 600,30 C800,60 1000,0 1200,30 L1200,60 L0,60 Z' fill='%23CCFBF1' opacity='0.4'/%3E%3Cpath d='M0,40 C200,10 400,50 600,20 C800,50 1000,10 1200,40 L1200,60 L0,60 Z' fill='%2399F6E4' opacity='0.2'/%3E%3C/svg%3E") repeat-x;
+  background-size: 1200px 60px;
+  pointer-events: none;
 }
 
-/* Grid cell hover */
+/* Ripple animation for active elements */
+@keyframes ripple {
+  0% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.35); }
+  70% { box-shadow: 0 0 0 14px rgba(13, 148, 136, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0); }
+}
+.ripple-active {
+  animation: ripple 2.2s ease-in-out infinite;
+}
+
+/* Gentle float animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+}
+.float-gentle {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Water shimmer on hover */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ====== GRID CELLS ====== */
+
 .grid-cell {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.grid-cell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.03) 0%, rgba(94, 234, 212, 0.06) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.grid-cell:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 8px 30px -8px rgba(13, 148, 136, 0.2),
+    0 4px 12px -4px rgba(13, 148, 136, 0.1);
+}
+
+.grid-cell:hover::after {
+  opacity: 1;
+}
+
+/* ====== POST-IT NOTES ====== */
+
+.note-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+
+.note-card::before {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 10%;
+  right: 10%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 50%;
+  filter: blur(3px);
   transition: all 0.2s ease;
 }
-.grid-cell:hover {
-  transform: scale(1.03);
-  box-shadow: 0 10px 40px -10px rgba(79, 70, 229, 0.3);
+
+.note-card:hover {
+  transform: translateY(-3px) rotate(0deg) !important;
+  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.12);
 }
 
-/* Smooth page transitions */
-.page-enter {
-  animation: fadeSlideIn 0.3s ease-out;
+.note-card:hover::before {
+  bottom: -6px;
+  filter: blur(5px);
 }
-@keyframes fadeSlideIn {
+
+/* ====== PAGE TRANSITIONS ====== */
+
+.page-enter {
+  animation: surfaceIn 0.4s ease-out;
+}
+
+@keyframes surfaceIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -63,16 +171,23 @@ body {
   }
 }
 
-/* Pulse animation for active step */
-@keyframes subtlePulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.3); }
-  50% { box-shadow: 0 0 0 8px rgba(79, 70, 229, 0); }
-}
-.pulse-active {
-  animation: subtlePulse 2s ease-in-out infinite;
+/* ====== BUTTONS ====== */
+
+.btn-pool {
+  background: linear-gradient(135deg, var(--pool-mid), var(--pool-deep));
+  color: white;
+  border: none;
+  transition: all 0.2s ease;
 }
 
-/* Scrollbar styling */
+.btn-pool:hover {
+  background: linear-gradient(135deg, var(--pool-surface), var(--pool-mid));
+  box-shadow: 0 4px 16px -4px rgba(13, 148, 136, 0.4);
+  transform: translateY(-1px);
+}
+
+/* ====== SCROLLBAR ====== */
+
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -80,9 +195,9 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--pool-light);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--pool-shallow);
 }

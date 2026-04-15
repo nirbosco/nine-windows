@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Challenge, Group, GroupMember } from '@/lib/types'
+import { Challenge, Group } from '@/lib/types'
 
 export default function ChallengePage() {
   const { challengeId } = useParams<{ challengeId: string }>()
@@ -76,7 +76,7 @@ export default function ChallengePage() {
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full" />
       </main>
     )
   }
@@ -85,7 +85,7 @@ export default function ChallengePage() {
     <main className="min-h-screen px-4 py-8 max-w-4xl mx-auto page-enter">
       <button
         onClick={() => router.push('/')}
-        className="text-slate-500 hover:text-slate-700 text-sm mb-6 flex items-center gap-1 cursor-pointer"
+        className="text-teal-600/60 hover:text-teal-700 text-sm mb-6 flex items-center gap-1 cursor-pointer"
       >
         <span>&rarr;</span>
         <span>חזרה לבחירת אתגר</span>
@@ -93,26 +93,26 @@ export default function ChallengePage() {
 
       {challenge && (
         <div className="mb-10">
-          <h1 className="text-3xl font-bold text-slate-900 mb-3">
+          <h1 className="text-3xl font-bold text-teal-900 mb-3">
             {challenge.name}
           </h1>
-          <p className="text-slate-600 leading-relaxed">{challenge.description}</p>
+          <p className="text-teal-700/70 leading-relaxed">{challenge.description}</p>
         </div>
       )}
 
       <div className="grid md:grid-cols-2 gap-8">
         {/* Create new group */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-          <h2 className="text-lg font-bold text-slate-900 mb-1">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-teal-200/40">
+          <h2 className="text-lg font-bold text-teal-900 mb-1">
             יצירת קבוצה חדשה
           </h2>
-          <p className="text-sm text-slate-500 mb-5">
-            הקימו קבוצת עבודה חדשה עבור הצוות שלכם
+          <p className="text-sm text-teal-600/60 mb-5">
+            הקימו קבוצת עבודה וצללו לתוך האתגר
           </p>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-teal-800 mb-1">
                 שם הקבוצה
               </label>
               <input
@@ -120,12 +120,12 @@ export default function ChallengePage() {
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
                 placeholder='למשל: "צוות אלפא"'
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-teal-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white/60"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-teal-800 mb-1">
                 שמות המשתתפים
               </label>
               <textarea
@@ -133,31 +133,31 @@ export default function ChallengePage() {
                 onChange={(e) => setMemberNames(e.target.value)}
                 placeholder={'שם בכל שורה:\nדנה כהן\nיוסי לוי\nמיכל אברהם'}
                 rows={4}
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-2.5 border border-teal-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none bg-white/60"
               />
             </div>
 
             <button
               onClick={handleCreate}
               disabled={!groupName.trim() || creating}
-              className="w-full py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full py-3 btn-pool font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              {creating ? 'יוצר קבוצה...' : 'צרו קבוצה והתחילו'}
+              {creating ? 'יוצר קבוצה...' : 'צרו קבוצה וצללו פנימה'}
             </button>
           </div>
         </div>
 
         {/* Join existing group */}
         <div>
-          <h2 className="text-lg font-bold text-slate-900 mb-1">
+          <h2 className="text-lg font-bold text-teal-900 mb-1">
             הצטרפות לקבוצה קיימת
           </h2>
-          <p className="text-sm text-slate-500 mb-5">
-            בחרו מתוך הקבוצות שכבר נוצרו
+          <p className="text-sm text-teal-600/60 mb-5">
+            בחרו מתוך הקבוצות שכבר צללו
           </p>
 
           {groups.length === 0 ? (
-            <div className="bg-slate-50 rounded-2xl p-8 text-center text-slate-400 text-sm border border-dashed border-slate-300">
+            <div className="bg-teal-50/50 rounded-2xl p-8 text-center text-teal-500/60 text-sm border border-dashed border-teal-300/40">
               עדיין אין קבוצות. צרו את הראשונה!
             </div>
           ) : (
@@ -166,13 +166,13 @@ export default function ChallengePage() {
                 <button
                   key={g.id}
                   onClick={() => router.push(`/workshop/${g.id}`)}
-                  className="w-full bg-white rounded-xl p-4 shadow-sm border border-slate-200 hover:border-indigo-300 hover:shadow-md transition-all text-right cursor-pointer"
+                  className="w-full bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-teal-200/40 hover:border-teal-300 hover:shadow-md hover:shadow-teal-100/50 transition-all text-right cursor-pointer"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-teal-500/60">
                       {g.member_count} משתתפים
                     </span>
-                    <h3 className="font-semibold text-slate-800">{g.name}</h3>
+                    <h3 className="font-semibold text-teal-800">{g.name}</h3>
                   </div>
                 </button>
               ))}
