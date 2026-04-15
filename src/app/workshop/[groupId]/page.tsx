@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { WINDOWS } from '@/lib/windows-data'
-import { Challenge, Group, NoteType, NOTE_TYPE_CONFIG } from '@/lib/types'
+import { Challenge, Group, Note, NoteType, NOTE_TYPE_CONFIG } from '@/lib/types'
 
 const GRID_ROWS = [
   { label: 'מערכת-על', windows: [4, 3, 7] },
@@ -28,6 +28,7 @@ export default function WorkshopGrid() {
   const [challenge, setChallenge] = useState<Challenge | null>(null)
   const [counts, setCounts] = useState<WindowCounts>({})
   const [loading, setLoading] = useState(true)
+  const [guideOpen, setGuideOpen] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -80,6 +81,93 @@ export default function WorkshopGrid() {
     exportGroupData(groupId, group, challenge)
   }
 
+  async function handleExportForNotebook() {
+    const { data: members } = await supabase
+      .from('group_members')
+      .select('name')
+      .eq('group_id', groupId)
+
+    const { data: notes } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('group_id', groupId)
+      .order('created_at') as { data: Note[] | null }
+
+    let text = `# ניתוח אתגר בשיטת תשעת החלונות (TRIZ)\n\n`
+    text += `## פרטי הסדנה\n`
+    text += `- **אתגר:** ${challenge?.name || ''}\n`
+    text += `- **קבוצה:** ${group?.name || ''}\n`
+    text += `- **משתתפים:** ${members?.map((m: { name: string }) => m.name).join(', ') || ''}\n`
+    text += `- **תאריך:** ${new Date().toLocaleDateString('he-IL')}\n`
+    text += `- **תוכנית:** אדוות — מחזור ז'\n\n`
+    text += `---\n\n`
+    text += `## הסבר על המבנה\n`
+    text += `הטבלה מאורגנת כמטריצה של 3×3:\n`
+    text += `- **שורות** = רמות מערכת: מערכת-על (סביבה רחבה), מערכת (האתגר עצמו), תת-מערכת (רכיבים פנימיים)\n`
+    text += `- **עמודות** = ממדי זמן: עבר, הווה, עתיד\n`
+    text += `- **סוגי פתקים**: שאלות (דברים שצריך לברר), ידע (עובדות ונתונים), מחשבות (תובנות ורעיונות)\n\n`
+    text += `---\n\n`
+
+    for (const win of WINDOWS) {
+      const windowNotes = notes?.filter(
+        (n) => n.window_number === win.number
+      ) || []
+
+      text += `## חלון ${win.number}: ${win.title}\n`
+      text += `**${win.subtitle}** | ${win.systemLevel === 'super' ? 'מערכת-על' : win.systemLevel === 'system' ? 'מערכת' : 'תת-מערכת'} + ${win.timeFrame === 'past' ? 'עבר' : win.timeFrame === 'present' ? 'הווה' : 'עתיד'}\n\n`
+      text += `> ${win.description}\n\n`
+
+      if (windowNotes.length > 0) {
+        const questions = windowNotes.filter((n) => n.note_type === 'question')
+        const knowledge = windowNotes.filter((n) => n.note_type === 'knowledge')
+        const thoughts = windowNotes.filter((n) => n.note_type === 'thought')
+
+        if (questions.length > 0) {
+          text += `### שאלות שעולות\n`
+          questions.forEach((n) => {
+            text += `- ${n.content}${n.author_name ? ` *(${n.author_name})*` : ''}\n`
+          })
+          text += '\n'
+        }
+
+        if (knowledge.length > 0) {
+          text += `### דברים שאנחנו יודעים\n`
+          knowledge.forEach((n) => {
+            text += `- ${n.content}${n.author_name ? ` *(${n.author_name})*` : ''}\n`
+          })
+          text += '\n'
+        }
+
+        if (thoughts.length > 0) {
+          text += `### מחשבות ותובנות\n`
+          thoughts.forEach((n) => {
+            text += `- ${n.content}${n.author_name ? ` *(${n.author_name})*` : ''}\n`
+          })
+          text += '\n'
+        }
+      } else {
+        text += `*(לא מולא עדיין)*\n\n`
+      }
+
+      text += `---\n\n`
+    }
+
+    text += `## סיכום כמותי\n`
+    const allNotes = notes || []
+    text += `- **סה"כ פתקים:** ${allNotes.length}\n`
+    text += `- **שאלות:** ${allNotes.filter((n) => n.note_type === 'question').length}\n`
+    text += `- **ידע:** ${allNotes.filter((n) => n.note_type === 'knowledge').length}\n`
+    text += `- **מחשבות:** ${allNotes.filter((n) => n.note_type === 'thought').length}\n`
+
+    const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `nine-windows-${group?.name || 'export'}-notebook.md`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
@@ -113,12 +201,20 @@ export default function WorkshopGrid() {
             <p className="text-sm text-gray-500 mt-1">{challenge.name}</p>
           )}
         </div>
-        <button
-          onClick={handleExport}
-          className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors cursor-pointer"
-        >
-          ייצוא לטקסט
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleExport}
+            className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors cursor-pointer"
+          >
+            ייצוא לטקסט
+          </button>
+          <button
+            onClick={() => handleExportForNotebook()}
+            className="px-4 py-2 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-xl text-sm font-medium hover:brightness-110 transition-all cursor-pointer"
+          >
+            NotebookLM
+          </button>
+        </div>
       </div>
 
       {/* Pool status bar */}
@@ -148,10 +244,116 @@ export default function WorkshopGrid() {
         <div className="wave-bottom absolute inset-0 pointer-events-none" />
       </div>
 
-      {/* Instruction */}
-      <p className="text-sm text-gray-500 mb-6 text-center">
-        <strong className="text-gray-700">התחילו מחלון 1</strong> במרכז והתרחבו החוצה לפי המספרים. לחצו על חלון כדי לצלול פנימה.
-      </p>
+      {/* Methodology guide - collapsible */}
+      <div className="bg-white rounded-2xl border border-gray-200 mb-6 overflow-hidden">
+        <button
+          onClick={() => setGuideOpen(!guideOpen)}
+          className="w-full px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-gray-50/50 transition-colors"
+        >
+          <h2 className="text-sm font-bold text-gray-800">
+            איך עובדים עם תשעת החלונות?
+          </h2>
+          <span className={`text-gray-400 transition-transform duration-200 text-xs ${guideOpen ? 'rotate-180' : ''}`}>
+            &#x25BC;
+          </span>
+        </button>
+
+        {guideOpen && (
+          <div className="px-5 pb-6 border-t border-gray-100 space-y-5">
+            {/* What is Nine Windows */}
+            <div className="mt-4">
+              <h3 className="text-sm font-bold text-teal-700 mb-2">מה זה תשעת החלונות?</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                תשעת החלונות הוא כלי חשיבה מתודולוגי מעולם ה-TRIZ (תורת הפתרון היצירתי של בעיות) של גנריך אלטשולר.
+                הכלי מזמין אתכם להסתכל על האתגר דרך <strong>טבלה של 3×3</strong> — שלוש רמות מערכת כפול שלושה ממדי זמן.
+                המטרה: להרחיב את &quot;בריכת הידע&quot; שלכם על האתגר לפני שקופצים לפתרונות.
+              </p>
+            </div>
+
+            {/* System levels */}
+            <div>
+              <h3 className="text-sm font-bold text-teal-700 mb-2">שלוש רמות המערכת (השורות)</h3>
+              <div className="space-y-2">
+                <div className="flex gap-3 items-start">
+                  <span className="shrink-0 w-20 text-xs font-bold text-gray-700 bg-gray-100 rounded-lg px-2 py-1 text-center">מערכת-על</span>
+                  <p className="text-sm text-gray-600">הסביבה הרחבה שבתוכה המערכת שלנו פועלת — הרגולציה, השוק, התרבות, מערכות שכנות. &quot;זום אאוט&quot; מקסימלי.</p>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <span className="shrink-0 w-20 text-xs font-bold text-gray-700 bg-gray-100 rounded-lg px-2 py-1 text-center">מערכת</span>
+                  <p className="text-sm text-gray-600">המערכת עצמה, כפי שאנחנו חווים אותה. זה האתגר שלנו, הארגון שלנו, התהליך שאנחנו מנסים לשנות.</p>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <span className="shrink-0 w-20 text-xs font-bold text-gray-700 bg-gray-100 rounded-lg px-2 py-1 text-center">תת-מערכת</span>
+                  <p className="text-sm text-gray-600">הרכיבים הפנימיים של המערכת — אנשים, תהליכים, כלים, משאבים. &quot;זום אין&quot; לקרביים.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Time frames */}
+            <div>
+              <h3 className="text-sm font-bold text-teal-700 mb-2">שלושה ממדי זמן (העמודות)</h3>
+              <div className="space-y-2">
+                <div className="flex gap-3 items-start">
+                  <span className="shrink-0 w-14 text-xs font-bold rounded-lg px-2 py-1 text-center" style={{ background: '#FEF3C7', color: '#92400E' }}>עבר</span>
+                  <p className="text-sm text-gray-600">מאיפה באנו? מה הוביל למצב הנוכחי? אילו ניסיונות כבר נעשו?</p>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <span className="shrink-0 w-14 text-xs font-bold rounded-lg px-2 py-1 text-center" style={{ background: '#CCFBF1', color: '#134E4A' }}>הווה</span>
+                  <p className="text-sm text-gray-600">מה קורה עכשיו? מה עובד ומה לא? מי מעורב?</p>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <span className="shrink-0 w-14 text-xs font-bold rounded-lg px-2 py-1 text-center" style={{ background: '#E0E7FF', color: '#312E81' }}>עתיד</span>
+                  <p className="text-sm text-gray-600">לאן נרצה להגיע? מה המגמות? מה יקרה אם לא נשנה כלום?</p>
+                </div>
+              </div>
+            </div>
+
+            {/* How to fill */}
+            <div>
+              <h3 className="text-sm font-bold text-teal-700 mb-2">סדר מילוי מומלץ</h3>
+              <p className="text-sm text-gray-600 leading-relaxed mb-2">
+                הטבלה ממולאת לפי סדר מספרי (1→9), לא לפי שורות או עמודות. הסדר מתוכנן כך:
+              </p>
+              <ol className="text-sm text-gray-600 space-y-1 list-none">
+                <li className="flex gap-2"><span className="font-bold text-teal-600 shrink-0">1-3</span> מתחילים מההווה — עוגנים את הבעיה, צוללים פנימה, ואז רואים את התמונה הרחבה.</li>
+                <li className="flex gap-2"><span className="font-bold text-amber-600 shrink-0">4-6</span> חוזרים לעבר — מהמאקרו למיקרו, מבינים איך הגענו לכאן.</li>
+                <li className="flex gap-2"><span className="font-bold text-indigo-600 shrink-0">7-9</span> מדמיינים את העתיד — מגמות-על, רכיבים חדשים, ולבסוף תמונת הניצחון.</li>
+              </ol>
+            </div>
+
+            {/* Note types */}
+            <div>
+              <h3 className="text-sm font-bold text-teal-700 mb-2">סוגי הפתקים</h3>
+              <p className="text-sm text-gray-600 mb-2">בכל חלון אפשר להדביק שלושה סוגי פתקים:</p>
+              <div className="flex flex-wrap gap-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="w-5 h-5 rounded" style={{ background: '#C5E8F7' }} />
+                  <span className="text-gray-600"><strong className="text-sky-800">שאלה</strong> — דברים שלא ברורים, שצריך לברר</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="w-5 h-5 rounded" style={{ background: '#C5F0D5' }} />
+                  <span className="text-gray-600"><strong className="text-teal-800">ידע</strong> — עובדות, נתונים, דברים שאנחנו יודעים</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="w-5 h-5 rounded" style={{ background: '#FFFAA0' }} />
+                  <span className="text-gray-600"><strong className="text-amber-800">מחשבה</strong> — תובנות, רעיונות, אינטואיציות</span>
+                </div>
+              </div>
+            </div>
+
+            {/* What to do after */}
+            <div>
+              <h3 className="text-sm font-bold text-teal-700 mb-2">מה עושים אחרי?</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                אחרי שמילאתם את כל 9 החלונות, ייצאו את הקובץ ללחצן <strong>&quot;NotebookLM&quot;</strong> —
+                הקובץ יורד כטקסט מובנה שאפשר להעלות ישירות ל-Google NotebookLM.
+                שם תוכלו לשוחח עם ה-AI על הממצאים, לשאול שאלות, לבקש סיכומים, ולמצוא תבניות שחוצות את כל החלונות.
+                זוהי הדרך להפוך את בריכת הידע שאספתם לתובנות פעולה.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* THE POOL — 3x3 grid inside a pool container */}
       <div className="pool-container p-4 sm:p-6 mb-8 relative">
