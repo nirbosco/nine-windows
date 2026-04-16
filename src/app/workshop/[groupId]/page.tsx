@@ -4,22 +4,35 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { WINDOWS } from '@/lib/windows-data'
-import { Challenge, Group, Note, NoteType, NOTE_TYPE_CONFIG } from '@/lib/types'
+import { Challenge, Group, Depth, DEPTH_CONFIG } from '@/lib/types'
 
-const GRID_ROWS = [
-  { label: 'מערכת-על', windows: [4, 3, 7] },
-  { label: 'מערכת', windows: [5, 1, 9] },
-  { label: 'תת-מערכת', windows: [6, 2, 8] },
-]
-const COL_HEADERS = ['עבר', 'הווה', 'עתיד']
-
-const TIME_COLORS: Record<string, { bg: string; text: string; border: string; badge: string }> = {
-  past: { bg: 'rgba(217, 119, 6, 0.08)', text: '#92400E', border: 'rgba(217, 119, 6, 0.25)', badge: '#D97706' },
-  present: { bg: 'rgba(13, 148, 136, 0.08)', text: '#134E4A', border: 'rgba(13, 148, 136, 0.25)', badge: '#0D9488' },
-  future: { bg: 'rgba(99, 102, 241, 0.08)', text: '#312E81', border: 'rgba(99, 102, 241, 0.25)', badge: '#6366F1' },
+const TIME_COLORS: Record<
+  string,
+  { bg: string; text: string; border: string; badge: string }
+> = {
+  past: {
+    bg: 'rgba(217, 119, 6, 0.08)',
+    text: '#92400E',
+    border: 'rgba(217, 119, 6, 0.25)',
+    badge: '#D97706',
+  },
+  present: {
+    bg: 'rgba(13, 148, 136, 0.08)',
+    text: '#134E4A',
+    border: 'rgba(13, 148, 136, 0.25)',
+    badge: '#0D9488',
+  },
+  future: {
+    bg: 'rgba(99, 102, 241, 0.08)',
+    text: '#312E81',
+    border: 'rgba(99, 102, 241, 0.25)',
+    badge: '#6366F1',
+  },
 }
 
-type WindowCounts = Record<number, Record<NoteType | 'total', number>>
+type WindowCounts = Record<number, Record<Depth | 'total', number>>
+
+const COL_HEADERS = ['עבר', 'הווה', 'עתיד']
 
 export default function WorkshopGrid() {
   const { groupId } = useParams<{ groupId: string }>()
@@ -29,6 +42,26 @@ export default function WorkshopGrid() {
   const [counts, setCounts] = useState<WindowCounts>({})
   const [loading, setLoading] = useState(true)
   const [guideOpen, setGuideOpen] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [notebookUrl, setNotebookUrl] = useState<string | null>(null)
+  const [syncResult, setSyncResult] = useState<{
+    success?: boolean
+    notebook_url?: string
+    error?: string
+  } | null>(null)
+
+  // Build grid rows dynamically from challenge system names
+  const gridRows = challenge
+    ? [
+        { label: challenge.super_system_name, windows: [4, 3, 7] },
+        { label: challenge.system_name, windows: [5, 1, 9] },
+        { label: challenge.sub_system_name, windows: [6, 2, 8] },
+      ]
+    : [
+        { label: 'מערכת-על', windows: [4, 3, 7] },
+        { label: 'מערכת', windows: [5, 1, 9] },
+        { label: 'תת-מערכת', windows: [6, 2, 8] },
+      ]
 
   useEffect(() => {
     async function load() {
@@ -45,21 +78,21 @@ export default function WorkshopGrid() {
           .select('*')
           .eq('id', g.challenge_id)
           .single()
-        if (c) setChallenge(c)
+        if (c) setChallenge(c as Challenge)
       }
 
       const { data: notes } = await supabase
         .from('notes')
-        .select('window_number, note_type')
+        .select('window_number, depth')
         .eq('group_id', groupId)
 
       if (notes) {
         const c: WindowCounts = {}
-        notes.forEach((n: { window_number: number; note_type: NoteType }) => {
+        notes.forEach((n: { window_number: number; depth: Depth }) => {
           if (!c[n.window_number]) {
-            c[n.window_number] = { question: 0, knowledge: 0, thought: 0, total: 0 }
+            c[n.window_number] = { floating: 0, deep: 0, total: 0 }
           }
-          c[n.window_number][n.note_type]++
+          c[n.window_number][n.depth]++
           c[n.window_number].total++
         })
         setCounts(c)
@@ -68,6 +101,15 @@ export default function WorkshopGrid() {
       setLoading(false)
     }
     load()
+  }, [groupId])
+
+  useEffect(() => {
+    fetch(`/api/notebooklm-sync?groupId=${groupId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.found) setNotebookUrl(data.notebook_url)
+      })
+      .catch(() => {})
   }, [groupId])
 
   function getNextStep(): number {
@@ -81,91 +123,28 @@ export default function WorkshopGrid() {
     exportGroupData(groupId, group, challenge)
   }
 
-  async function handleExportForNotebook() {
-    const { data: members } = await supabase
-      .from('group_members')
-      .select('name')
-      .eq('group_id', groupId)
+  async function handleNotebookSync() {
+    setSyncing(true)
+    setSyncResult(null)
 
-    const { data: notes } = await supabase
-      .from('notes')
-      .select('*')
-      .eq('group_id', groupId)
-      .order('created_at') as { data: Note[] | null }
+    try {
+      const res = await fetch('/api/notebooklm-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId }),
+      })
 
-    let text = `# ניתוח אתגר בשיטת תשעת החלונות (TRIZ)\n\n`
-    text += `## פרטי הסדנה\n`
-    text += `- **אתגר:** ${challenge?.name || ''}\n`
-    text += `- **קבוצה:** ${group?.name || ''}\n`
-    text += `- **משתתפים:** ${members?.map((m: { name: string }) => m.name).join(', ') || ''}\n`
-    text += `- **תאריך:** ${new Date().toLocaleDateString('he-IL')}\n`
-    text += `- **תוכנית:** אדוות — מחזור ז'\n\n`
-    text += `---\n\n`
-    text += `## הסבר על המבנה\n`
-    text += `הטבלה מאורגנת כמטריצה של 3×3:\n`
-    text += `- **שורות** = רמות מערכת: מערכת-על (סביבה רחבה), מערכת (האתגר עצמו), תת-מערכת (רכיבים פנימיים)\n`
-    text += `- **עמודות** = ממדי זמן: עבר, הווה, עתיד\n`
-    text += `- **סוגי פתקים**: שאלות (דברים שצריך לברר), ידע (עובדות ונתונים), מחשבות (תובנות ורעיונות)\n\n`
-    text += `---\n\n`
+      const data = await res.json()
+      setSyncResult(data)
 
-    for (const win of WINDOWS) {
-      const windowNotes = notes?.filter(
-        (n) => n.window_number === win.number
-      ) || []
-
-      text += `## חלון ${win.number}: ${win.title}\n`
-      text += `**${win.subtitle}** | ${win.systemLevel === 'super' ? 'מערכת-על' : win.systemLevel === 'system' ? 'מערכת' : 'תת-מערכת'} + ${win.timeFrame === 'past' ? 'עבר' : win.timeFrame === 'present' ? 'הווה' : 'עתיד'}\n\n`
-      text += `> ${win.description}\n\n`
-
-      if (windowNotes.length > 0) {
-        const questions = windowNotes.filter((n) => n.note_type === 'question')
-        const knowledge = windowNotes.filter((n) => n.note_type === 'knowledge')
-        const thoughts = windowNotes.filter((n) => n.note_type === 'thought')
-
-        if (questions.length > 0) {
-          text += `### שאלות שעולות\n`
-          questions.forEach((n) => {
-            text += `- ${n.content}${n.author_name ? ` *(${n.author_name})*` : ''}\n`
-          })
-          text += '\n'
-        }
-
-        if (knowledge.length > 0) {
-          text += `### דברים שאנחנו יודעים\n`
-          knowledge.forEach((n) => {
-            text += `- ${n.content}${n.author_name ? ` *(${n.author_name})*` : ''}\n`
-          })
-          text += '\n'
-        }
-
-        if (thoughts.length > 0) {
-          text += `### מחשבות ותובנות\n`
-          thoughts.forEach((n) => {
-            text += `- ${n.content}${n.author_name ? ` *(${n.author_name})*` : ''}\n`
-          })
-          text += '\n'
-        }
-      } else {
-        text += `*(לא מולא עדיין)*\n\n`
+      if (data.success && data.notebook_url) {
+        setNotebookUrl(data.notebook_url)
       }
-
-      text += `---\n\n`
+    } catch {
+      setSyncResult({ error: 'שגיאה בחיבור לשרת' })
+    } finally {
+      setSyncing(false)
     }
-
-    text += `## סיכום כמותי\n`
-    const allNotes = notes || []
-    text += `- **סה"כ פתקים:** ${allNotes.length}\n`
-    text += `- **שאלות:** ${allNotes.filter((n) => n.note_type === 'question').length}\n`
-    text += `- **ידע:** ${allNotes.filter((n) => n.note_type === 'knowledge').length}\n`
-    text += `- **מחשבות:** ${allNotes.filter((n) => n.note_type === 'thought').length}\n`
-
-    const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `nine-windows-${group?.name || 'export'}-notebook.md`
-    a.click()
-    URL.revokeObjectURL(url)
   }
 
   if (loading) {
@@ -194,12 +173,21 @@ export default function WorkshopGrid() {
             <span>&rarr;</span>
             <span>חזרה</span>
           </button>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {group?.name}
-          </h1>
-          {challenge && (
-            <p className="text-sm text-gray-500 mt-1">{challenge.name}</p>
-          )}
+          <div className="flex items-center gap-3">
+            <img
+              src="/eduvot-logo-light.jpeg"
+              alt="אדוות"
+              className="h-9"
+            />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {group?.name}
+              </h1>
+              {challenge && (
+                <p className="text-sm text-gray-500">{challenge.name}</p>
+              )}
+            </div>
+          </div>
         </div>
         <div className="flex gap-2">
           <button
@@ -209,13 +197,61 @@ export default function WorkshopGrid() {
             ייצוא לטקסט
           </button>
           <button
-            onClick={() => handleExportForNotebook()}
-            className="px-4 py-2 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-xl text-sm font-medium hover:brightness-110 transition-all cursor-pointer"
+            onClick={handleNotebookSync}
+            disabled={syncing}
+            className={`px-4 py-2 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-xl text-sm font-medium transition-all cursor-pointer ${
+              syncing ? 'opacity-60 cursor-wait' : 'hover:brightness-110'
+            }`}
           >
-            NotebookLM
+            {syncing ? 'מסנכרן...' : 'סנכרן NotebookLM'}
           </button>
+          {notebookUrl && (
+            <a
+              href={notebookUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-white border border-indigo-200 text-indigo-600 rounded-xl text-sm font-medium hover:bg-indigo-50 hover:border-indigo-300 transition-colors"
+            >
+              פתח מחברת
+            </a>
+          )}
         </div>
       </div>
+
+      {/* Sync result notification */}
+      {syncResult && (
+        <div
+          className={`rounded-xl p-4 mb-4 text-sm ${
+            syncResult.success
+              ? 'bg-green-50 border border-green-200 text-green-800'
+              : 'bg-red-50 border border-red-200 text-red-800'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span>
+              {syncResult.success
+                ? 'כל הקבוצות סונכרנו בהצלחה למחברת NotebookLM'
+                : `שגיאה: ${syncResult.error}`}
+            </span>
+            <button
+              onClick={() => setSyncResult(null)}
+              className="text-xs opacity-60 hover:opacity-100 cursor-pointer"
+            >
+              &times;
+            </button>
+          </div>
+          {syncResult.success && syncResult.notebook_url && (
+            <a
+              href={syncResult.notebook_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 mt-2 px-4 py-2 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-lg text-sm font-medium hover:brightness-110 transition-all"
+            >
+              פתח מחברת NotebookLM &larr;
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Pool status bar */}
       <div className="bg-gradient-to-r from-cyan-50 to-teal-50 rounded-2xl p-5 mb-6 border border-teal-200/40 relative">
@@ -225,14 +261,16 @@ export default function WorkshopGrid() {
               בריכת הידע
             </p>
             <p className="text-xs text-teal-600/70">
-              {filledWindows}/9 חלונות מלאים &middot; {totalNotes} פתקים
+              {filledWindows}/9 חלונות מלאים &middot; {totalNotes} נקודות
             </p>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-36 h-3 bg-white/60 rounded-full overflow-hidden border border-teal-200/30">
               <div
                 className="h-full depth-fill rounded-full"
-                style={{ width: `${Math.round((filledWindows / 9) * 100)}%` }}
+                style={{
+                  width: `${Math.round((filledWindows / 9) * 100)}%`,
+                }}
               />
             </div>
             <span className="text-xs font-bold text-teal-700">
@@ -240,8 +278,6 @@ export default function WorkshopGrid() {
             </span>
           </div>
         </div>
-        {/* Subtle wave */}
-        <div className="wave-bottom absolute inset-0 pointer-events-none" />
       </div>
 
       {/* Methodology guide - collapsible */}
@@ -253,121 +289,106 @@ export default function WorkshopGrid() {
           <h2 className="text-sm font-bold text-gray-800">
             איך עובדים עם תשעת החלונות?
           </h2>
-          <span className={`text-gray-400 transition-transform duration-200 text-xs ${guideOpen ? 'rotate-180' : ''}`}>
+          <span
+            className={`text-gray-400 transition-transform duration-200 text-xs ${guideOpen ? 'rotate-180' : ''}`}
+          >
             &#x25BC;
           </span>
         </button>
 
         {guideOpen && (
           <div className="px-5 pb-6 border-t border-gray-100 space-y-5">
-            {/* What is Nine Windows */}
             <div className="mt-4">
-              <h3 className="text-sm font-bold text-teal-700 mb-2">מה זה תשעת החלונות?</h3>
+              <h3 className="text-sm font-bold text-teal-700 mb-2">
+                מה זה תשעת החלונות?
+              </h3>
               <p className="text-sm text-gray-600 leading-relaxed">
-                תשעת החלונות הוא כלי חשיבה מתודולוגי מעולם ה-TRIZ (תורת הפתרון היצירתי של בעיות) של גנריך אלטשולר.
-                הכלי מזמין אתכם להסתכל על האתגר דרך <strong>טבלה של 3×3</strong> — שלוש רמות מערכת כפול שלושה ממדי זמן.
-                המטרה: להרחיב את &quot;בריכת הידע&quot; שלכם על האתגר לפני שקופצים לפתרונות.
+                כלי חשיבה מתודולוגי מעולם ה-TRIZ של גנריך אלטשולר. טבלה של
+                3×3 — שלוש רמות מערכת כפול שלושה ממדי זמן. המטרה: להרחיב את
+                בריכת הידע על האתגר לפני שקופצים לפתרונות.
               </p>
             </div>
 
-            {/* System levels */}
             <div>
-              <h3 className="text-sm font-bold text-teal-700 mb-2">שלוש רמות המערכת (השורות)</h3>
+              <h3 className="text-sm font-bold text-teal-700 mb-2">
+                שני סוגי הנקודות
+              </h3>
               <div className="space-y-2">
                 <div className="flex gap-3 items-start">
-                  <span className="shrink-0 w-20 text-xs font-bold text-gray-700 bg-gray-100 rounded-lg px-2 py-1 text-center">מערכת-על</span>
-                  <p className="text-sm text-gray-600">הסביבה הרחבה שבתוכה המערכת שלנו פועלת — הרגולציה, השוק, התרבות, מערכות שכנות. &quot;זום אאוט&quot; מקסימלי.</p>
+                  <span className="shrink-0 text-xs font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 rounded-lg px-3 py-1">
+                    ~ צף
+                  </span>
+                  <p className="text-sm text-gray-600">
+                    תצפיות ראשוניות, שאלות, דברים שצפים על פני השטח
+                  </p>
                 </div>
                 <div className="flex gap-3 items-start">
-                  <span className="shrink-0 w-20 text-xs font-bold text-gray-700 bg-gray-100 rounded-lg px-2 py-1 text-center">מערכת</span>
-                  <p className="text-sm text-gray-600">המערכת עצמה, כפי שאנחנו חווים אותה. זה האתגר שלנו, הארגון שלנו, התהליך שאנחנו מנסים לשנות.</p>
-                </div>
-                <div className="flex gap-3 items-start">
-                  <span className="shrink-0 w-20 text-xs font-bold text-gray-700 bg-gray-100 rounded-lg px-2 py-1 text-center">תת-מערכת</span>
-                  <p className="text-sm text-gray-600">הרכיבים הפנימיים של המערכת — אנשים, תהליכים, כלים, משאבים. &quot;זום אין&quot; לקרביים.</p>
+                  <span className="shrink-0 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-1">
+                    // צולל
+                  </span>
+                  <p className="text-sm text-gray-600">
+                    תובנות עמוקות, ניתוחים, דברים שדורשים צלילה
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Time frames */}
             <div>
-              <h3 className="text-sm font-bold text-teal-700 mb-2">שלושה ממדי זמן (העמודות)</h3>
-              <div className="space-y-2">
-                <div className="flex gap-3 items-start">
-                  <span className="shrink-0 w-14 text-xs font-bold rounded-lg px-2 py-1 text-center" style={{ background: '#FEF3C7', color: '#92400E' }}>עבר</span>
-                  <p className="text-sm text-gray-600">מאיפה באנו? מה הוביל למצב הנוכחי? אילו ניסיונות כבר נעשו?</p>
-                </div>
-                <div className="flex gap-3 items-start">
-                  <span className="shrink-0 w-14 text-xs font-bold rounded-lg px-2 py-1 text-center" style={{ background: '#CCFBF1', color: '#134E4A' }}>הווה</span>
-                  <p className="text-sm text-gray-600">מה קורה עכשיו? מה עובד ומה לא? מי מעורב?</p>
-                </div>
-                <div className="flex gap-3 items-start">
-                  <span className="shrink-0 w-14 text-xs font-bold rounded-lg px-2 py-1 text-center" style={{ background: '#E0E7FF', color: '#312E81' }}>עתיד</span>
-                  <p className="text-sm text-gray-600">לאן נרצה להגיע? מה המגמות? מה יקרה אם לא נשנה כלום?</p>
-                </div>
-              </div>
-            </div>
-
-            {/* How to fill */}
-            <div>
-              <h3 className="text-sm font-bold text-teal-700 mb-2">סדר מילוי מומלץ</h3>
-              <p className="text-sm text-gray-600 leading-relaxed mb-2">
-                הטבלה ממולאת לפי סדר מספרי (1→9), לא לפי שורות או עמודות. הסדר מתוכנן כך:
-              </p>
+              <h3 className="text-sm font-bold text-teal-700 mb-2">
+                סדר מילוי מומלץ
+              </h3>
               <ol className="text-sm text-gray-600 space-y-1 list-none">
-                <li className="flex gap-2"><span className="font-bold text-teal-600 shrink-0">1-3</span> מתחילים מההווה — עוגנים את הבעיה, צוללים פנימה, ואז רואים את התמונה הרחבה.</li>
-                <li className="flex gap-2"><span className="font-bold text-amber-600 shrink-0">4-6</span> חוזרים לעבר — מהמאקרו למיקרו, מבינים איך הגענו לכאן.</li>
-                <li className="flex gap-2"><span className="font-bold text-indigo-600 shrink-0">7-9</span> מדמיינים את העתיד — מגמות-על, רכיבים חדשים, ולבסוף תמונת הניצחון.</li>
+                <li className="flex gap-2">
+                  <span className="font-bold text-teal-600 shrink-0">1-3</span>
+                  מתחילים מההווה — עוגנים את הבעיה, צוללים פנימה, ואז התמונה
+                  הרחבה.
+                </li>
+                <li className="flex gap-2">
+                  <span className="font-bold text-amber-600 shrink-0">4-6</span>
+                  חוזרים לעבר — מהמאקרו למיקרו, מבינים איך הגענו לכאן.
+                </li>
+                <li className="flex gap-2">
+                  <span className="font-bold text-indigo-600 shrink-0">
+                    7-9
+                  </span>
+                  מדמיינים את העתיד — מגמות-על, רכיבים חדשים, תמונת הניצחון.
+                </li>
               </ol>
-            </div>
-
-            {/* Note types */}
-            <div>
-              <h3 className="text-sm font-bold text-teal-700 mb-2">סוגי הפתקים</h3>
-              <p className="text-sm text-gray-600 mb-2">בכל חלון אפשר להדביק שלושה סוגי פתקים:</p>
-              <div className="flex flex-wrap gap-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="w-5 h-5 rounded" style={{ background: '#C5E8F7' }} />
-                  <span className="text-gray-600"><strong className="text-sky-800">שאלה</strong> — דברים שלא ברורים, שצריך לברר</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="w-5 h-5 rounded" style={{ background: '#C5F0D5' }} />
-                  <span className="text-gray-600"><strong className="text-teal-800">ידע</strong> — עובדות, נתונים, דברים שאנחנו יודעים</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="w-5 h-5 rounded" style={{ background: '#FFFAA0' }} />
-                  <span className="text-gray-600"><strong className="text-amber-800">מחשבה</strong> — תובנות, רעיונות, אינטואיציות</span>
-                </div>
-              </div>
-            </div>
-
-            {/* What to do after */}
-            <div>
-              <h3 className="text-sm font-bold text-teal-700 mb-2">מה עושים אחרי?</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                אחרי שמילאתם את כל 9 החלונות, ייצאו את הקובץ ללחצן <strong>&quot;NotebookLM&quot;</strong> —
-                הקובץ יורד כטקסט מובנה שאפשר להעלות ישירות ל-Google NotebookLM.
-                שם תוכלו לשוחח עם ה-AI על הממצאים, לשאול שאלות, לבקש סיכומים, ולמצוא תבניות שחוצות את כל החלונות.
-                זוהי הדרך להפוך את בריכת הידע שאספתם לתובנות פעולה.
-              </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* THE POOL — 3x3 grid inside a pool container */}
-      <div className="pool-container p-4 sm:p-6 mb-8 relative">
+      {/* THE POOL — 3x3 grid */}
+      <div
+        className="pool-container p-4 sm:p-6 mb-8 relative"
+        style={{
+          border: '8px solid #B0BEC5',
+          borderRadius: '20px',
+          boxShadow:
+            'inset 0 0 40px rgba(0,100,120,0.15), 0 4px 20px rgba(0,0,0,0.12)',
+        }}
+      >
         <div className="min-w-[560px]">
           {/* Column headers */}
           <div className="grid grid-cols-[70px_1fr_1fr_1fr] gap-3 mb-3">
             <div />
             {COL_HEADERS.map((h, i) => {
-              const timeKey = ['past', 'present', 'future'][i]
+              const colors = ['#92400E', '#134E4A', '#312E81']
+              const bgs = [
+                'rgba(217,119,6,0.15)',
+                'rgba(13,148,136,0.15)',
+                'rgba(99,102,241,0.15)',
+              ]
               return (
                 <div
                   key={h}
-                  className="text-center text-sm font-bold rounded-lg py-1.5"
-                  style={{ color: 'white', textShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
+                  className="text-center text-sm font-extrabold rounded-lg py-2"
+                  style={{
+                    color: colors[i],
+                    background: bgs[i],
+                    backdropFilter: 'blur(4px)',
+                  }}
                 >
                   {h}
                 </div>
@@ -376,13 +397,19 @@ export default function WorkshopGrid() {
           </div>
 
           {/* Grid rows */}
-          {GRID_ROWS.map((row) => (
+          {gridRows.map((row) => (
             <div
               key={row.label}
               className="grid grid-cols-[70px_1fr_1fr_1fr] gap-3 mb-3"
             >
-              <div className="flex items-center justify-center text-xs font-bold text-white/80 text-center leading-tight"
-                style={{ textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
+              <div
+                className="flex items-center justify-center text-[11px] font-extrabold text-center leading-tight rounded-lg py-2"
+                style={{
+                  color: '#0E4D45',
+                  background: 'rgba(255,255,255,0.5)',
+                  backdropFilter: 'blur(4px)',
+                }}
+              >
                 {row.label}
               </div>
 
@@ -404,9 +431,10 @@ export default function WorkshopGrid() {
                       isCenter ? 'ring-2 ring-white/40 shadow-lg' : ''
                     } ${isNext ? 'ripple-active' : ''}`}
                     style={{
-                      background: total > 0
-                        ? `linear-gradient(145deg, rgba(255,255,255,0.9), ${timeColors.bg})`
-                        : 'rgba(255,255,255,0.75)',
+                      background:
+                        total > 0
+                          ? `linear-gradient(145deg, rgba(255,255,255,0.9), ${timeColors.bg})`
+                          : 'rgba(255,255,255,0.75)',
                     }}
                   >
                     {/* Step number badge */}
@@ -414,48 +442,67 @@ export default function WorkshopGrid() {
                       <span
                         className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-all"
                         style={{
-                          background: total > 0 ? timeColors.badge : 'rgba(255,255,255,0.8)',
+                          background:
+                            total > 0
+                              ? timeColors.badge
+                              : 'rgba(255,255,255,0.8)',
                           color: total > 0 ? 'white' : '#9CA3AF',
-                          boxShadow: total > 0 ? `0 2px 8px ${timeColors.badge}40` : 'none',
-                          border: total > 0 ? 'none' : '1px solid rgba(0,0,0,0.1)',
+                          boxShadow:
+                            total > 0
+                              ? `0 2px 8px ${timeColors.badge}40`
+                              : 'none',
+                          border:
+                            total > 0 ? 'none' : '1px solid rgba(0,0,0,0.1)',
                         }}
                       >
                         {wNum}
                       </span>
                       {total > 0 && (
-                        <span className="text-[10px] font-medium" style={{ color: timeColors.text }}>
-                          {total} פתקים
+                        <span
+                          className="text-[10px] font-medium"
+                          style={{ color: timeColors.text }}
+                        >
+                          {total} נקודות
                         </span>
                       )}
                     </div>
 
-                    {/* Title */}
-                    <h3 className="text-xs font-semibold mb-1 line-clamp-1" style={{ color: total > 0 ? timeColors.text : '#6B7280' }}>
-                      {win.subtitle}
+                    {/* Title — now uses simplified question */}
+                    <h3
+                      className="text-xs font-semibold mb-1 line-clamp-2"
+                      style={{
+                        color: total > 0 ? timeColors.text : '#6B7280',
+                      }}
+                    >
+                      {win.title}
                     </h3>
 
-                    {/* Type breakdown mini badges */}
+                    {/* Depth breakdown dots */}
                     {total > 0 && wCounts && (
-                      <div className="flex gap-1 mt-2 flex-wrap">
-                        {(['question', 'knowledge', 'thought'] as NoteType[]).map(
-                          (type) =>
-                            wCounts[type] > 0 && (
-                              <span
-                                key={type}
-                                className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${NOTE_TYPE_CONFIG[type].bgClass} ${NOTE_TYPE_CONFIG[type].textClass}`}
-                              >
-                                {wCounts[type]}
-                              </span>
-                            )
+                      <div className="flex gap-1.5 mt-2">
+                        {wCounts.floating > 0 && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-cyan-50 text-cyan-700 border border-cyan-200">
+                            ~ {wCounts.floating}
+                          </span>
+                        )}
+                        {wCounts.deep > 0 && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            // {wCounts.deep}
+                          </span>
                         )}
                       </div>
                     )}
 
-                    {/* Next step indicator */}
+                    {/* Next step indicator — prominent */}
                     {isNext && total === 0 && (
-                      <p className="text-[10px] mt-2 font-bold animate-pulse" style={{ color: timeColors.badge }}>
-                        צללו לכאן
-                      </p>
+                      <div className="mt-3">
+                        <p
+                          className="text-sm font-extrabold animate-pulse"
+                          style={{ color: timeColors.badge }}
+                        >
+                          צללו לכאן &larr;
+                        </p>
+                      </div>
                     )}
                   </button>
                 )
@@ -467,20 +514,45 @@ export default function WorkshopGrid() {
 
       {/* Legend */}
       <div className="flex flex-wrap gap-6 justify-center mb-4">
-        {(['question', 'knowledge', 'thought'] as NoteType[]).map((type) => (
-          <div key={type} className="flex items-center gap-2 text-xs text-gray-500">
-            <span className={`w-3 h-3 rounded-full ${NOTE_TYPE_CONFIG[type].dotClass}`} />
-            {NOTE_TYPE_CONFIG[type].label}
+        {(['floating', 'deep'] as Depth[]).map((d) => (
+          <div
+            key={d}
+            className="flex items-center gap-2 text-xs text-gray-500"
+          >
+            <span className={`w-3 h-3 rounded-full ${DEPTH_CONFIG[d].dotClass}`} />
+            {DEPTH_CONFIG[d].label}
           </div>
         ))}
       </div>
 
       {/* Time frame legend */}
       <div className="flex flex-wrap gap-4 justify-center text-[10px] text-gray-400">
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: TIME_COLORS.past.badge }} /> עבר</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: TIME_COLORS.present.badge }} /> הווה</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: TIME_COLORS.future.badge }} /> עתיד</span>
+        <span className="flex items-center gap-1">
+          <span
+            className="w-2 h-2 rounded-full"
+            style={{ background: TIME_COLORS.past.badge }}
+          />{' '}
+          עבר
+        </span>
+        <span className="flex items-center gap-1">
+          <span
+            className="w-2 h-2 rounded-full"
+            style={{ background: TIME_COLORS.present.badge }}
+          />{' '}
+          הווה
+        </span>
+        <span className="flex items-center gap-1">
+          <span
+            className="w-2 h-2 rounded-full"
+            style={{ background: TIME_COLORS.future.badge }}
+          />{' '}
+          עתיד
+        </span>
       </div>
+
+      <footer className="mt-12 mb-4 text-center text-xs text-gray-400">
+        פיתוח ובנייה: ארגון חותם — אחריות על החינוך בישראל
+      </footer>
     </main>
   )
 }
@@ -516,42 +588,36 @@ async function exportGroupData(
     text += `${win.subtitle}\n`
     text += '-------------------------------------------\n\n'
 
-    const windowNotes = notes?.filter(
-      (n: { window_number: number }) => n.window_number === win.number
-    ) || []
+    const windowNotes =
+      notes?.filter(
+        (n: { window_number: number }) => n.window_number === win.number,
+      ) || []
 
-    const byType = {
-      question: windowNotes.filter((n: { note_type: string }) => n.note_type === 'question'),
-      knowledge: windowNotes.filter((n: { note_type: string }) => n.note_type === 'knowledge'),
-      thought: windowNotes.filter((n: { note_type: string }) => n.note_type === 'thought'),
-    }
+    const floating = windowNotes.filter(
+      (n: { depth: string }) => n.depth === 'floating',
+    )
+    const deep = windowNotes.filter(
+      (n: { depth: string }) => n.depth === 'deep',
+    )
 
-    if (byType.question.length > 0) {
-      text += 'שאלות שעולות:\n'
-      byType.question.forEach((n: { content: string }) => {
-        text += `  * ${n.content}\n`
+    if (floating.length > 0) {
+      text += 'צף (על פני השטח):\n'
+      floating.forEach((n: { content: string; author_name?: string }) => {
+        text += `  * ${n.content}${n.author_name ? ` (${n.author_name})` : ''}\n`
       })
       text += '\n'
     }
 
-    if (byType.knowledge.length > 0) {
-      text += 'דברים שאנחנו יודעים:\n'
-      byType.knowledge.forEach((n: { content: string }) => {
-        text += `  * ${n.content}\n`
-      })
-      text += '\n'
-    }
-
-    if (byType.thought.length > 0) {
-      text += 'מחשבות כלליות:\n'
-      byType.thought.forEach((n: { content: string }) => {
-        text += `  * ${n.content}\n`
+    if (deep.length > 0) {
+      text += 'צולל (לעומק):\n'
+      deep.forEach((n: { content: string; author_name?: string }) => {
+        text += `  * ${n.content}${n.author_name ? ` (${n.author_name})` : ''}\n`
       })
       text += '\n'
     }
 
     if (windowNotes.length === 0) {
-      text += '(אין פתקים בחלון זה)\n\n'
+      text += '(אין נקודות בחלון זה)\n\n'
     }
   }
 

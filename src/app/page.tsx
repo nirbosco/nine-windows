@@ -50,9 +50,11 @@ export default function Home() {
       </div>
 
       <div className="text-center mb-10 relative z-10">
-        <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm text-teal-700 text-sm font-medium px-5 py-2 rounded-full mb-6 border border-teal-200/50 shadow-sm">
-          אדוות &middot; ניתוח אתגר &middot; מחזור ז&apos;
-        </div>
+        <img
+          src="/eduvot-logo-light.jpeg"
+          alt="אדוות — מנהיגות מחוללת שינוי"
+          className="h-14 mx-auto mb-6"
+        />
         <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-5 tracking-tight">
           תשעת החלונות
         </h1>
@@ -108,8 +110,9 @@ export default function Home() {
         ))}
       </div>
 
-      <footer className="mt-16 text-center text-sm text-gray-400 relative z-10">
-        מבוסס על מודל תשעת החלונות של גנריך אלטשולר (TRIZ)
+      <footer className="mt-16 text-center text-xs text-gray-400 relative z-10 space-y-1">
+        <p>מבוסס על מודל תשעת החלונות של גנריך אלטשולר (TRIZ)</p>
+        <p>פיתוח ובנייה: ארגון חותם — אחריות על החינוך בישראל</p>
       </footer>
     </main>
   )

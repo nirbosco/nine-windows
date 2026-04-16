@@ -13,18 +13,6 @@
   --background: #f0f5f3;
   --foreground: #134E4A;
 
-  /* Post-it paper colors - realistic */
-  --postit-yellow: #FFF740;
-  --postit-yellow-light: #FFFAA0;
-  --postit-blue: #7EC8E3;
-  --postit-blue-light: #C5E8F7;
-  --postit-green: #7ED4A6;
-  --postit-green-light: #C5F0D5;
-  --postit-pink: #FF9AA2;
-  --postit-pink-light: #FFD1D5;
-  --postit-orange: #FFB347;
-  --postit-orange-light: #FFD9A0;
-
   /* Time-frame palettes */
   --past-primary: #D97706;
   --past-bg: #FFFBEB;
@@ -41,11 +29,6 @@
   --future-accent: #818CF8;
   --future-border: #A5B4FC;
 
-  /* Cork board */
-  --cork-color: #C4956A;
-  --cork-light: #D4A574;
-  --cork-dark: #A07850;
-  --board-bg: #E8D5B7;
 }
 
 @theme inline {
@@ -69,241 +52,84 @@ body {
 }
 
 /* ====================================================
-   CORK BOARD BACKGROUND
+   DOT CARDS (notes in pool)
    ==================================================== */
 
-.cork-board {
-  background-color: #C4956A;
-  background-image:
-    url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E");
+.dot-card {
   position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.cork-board::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 20% 30%, rgba(255,255,255,0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 70%, rgba(0,0,0,0.05) 0%, transparent 50%);
-  pointer-events: none;
+.dot-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
-/* Wood frame around cork board */
-.cork-frame {
-  border: 12px solid #8B6914;
-  border-image: linear-gradient(
-    135deg,
-    #A0782C 0%, #C49A3C 15%, #8B6914 30%,
-    #A0782C 50%, #C49A3C 65%, #8B6914 80%,
-    #A0782C 100%
-  ) 12;
-  box-shadow:
-    inset 0 0 20px rgba(0,0,0,0.15),
-    0 4px 20px rgba(0,0,0,0.2);
+/* Show action buttons on hover */
+.dot-card:hover .opacity-0 {
+  opacity: 1 !important;
 }
 
-/* ====================================================
-   PHYSICAL POST-IT NOTES
-   ==================================================== */
-
-.postit {
-  position: relative;
-  padding: 20px 16px 16px;
-  min-height: 100px;
-  font-size: 14px;
-  line-height: 1.6;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-  cursor: default;
-}
-
-/* Paper texture overlay */
-.postit::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 28px,
-      rgba(0,0,0,0.02) 28px,
-      rgba(0,0,0,0.02) 29px
-    );
-  pointer-events: none;
-  border-radius: inherit;
-}
-
-/* Paper shadow - looks like it's stuck on a board */
-.postit::after {
-  content: '';
-  position: absolute;
-  bottom: -3px;
-  left: 4px;
-  right: 4px;
-  height: 10px;
-  background: rgba(0,0,0,0.12);
-  filter: blur(4px);
-  border-radius: 0 0 2px 2px;
-  z-index: -1;
-  transition: all 0.25s ease;
-}
-
-.postit:hover {
-  transform: scale(1.03) rotate(0deg) !important;
-  z-index: 10;
-}
-
-.postit:hover::after {
-  bottom: -6px;
-  filter: blur(7px);
-  background: rgba(0,0,0,0.18);
-}
-
-/* Tape strip on top of the note */
-.postit-tape {
-  position: absolute;
-  top: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60px;
-  height: 18px;
-  background: rgba(255,255,255,0.55);
-  border: 1px solid rgba(200,200,200,0.3);
-  z-index: 2;
-}
-
-/* Folded corner effect */
-.postit-fold::before {
-  content: '' !important;
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-width: 20px 20px 0 0;
-  border-color: transparent var(--fold-color, rgba(0,0,0,0.08)) transparent transparent;
-  z-index: 2;
-  filter: drop-shadow(1px -1px 1px rgba(0,0,0,0.05));
-}
-
-/* Post-it color variants */
-.postit-question {
-  background: linear-gradient(145deg, #C5E8F7 0%, #A8D8EA 100%);
-  --fold-color: #8EC8E0;
-  color: #1A4971;
-  box-shadow:
-    2px 3px 8px rgba(0,0,0,0.12),
-    inset 0 0 30px rgba(255,255,255,0.2);
-}
-
-.postit-knowledge {
-  background: linear-gradient(145deg, #C5F0D5 0%, #A8E6C1 100%);
-  --fold-color: #8ED6A8;
-  color: #1A4A30;
-  box-shadow:
-    2px 3px 8px rgba(0,0,0,0.12),
-    inset 0 0 30px rgba(255,255,255,0.2);
-}
-
-.postit-thought {
-  background: linear-gradient(145deg, #FFFAA0 0%, #FFF176 100%);
-  --fold-color: #E8D85C;
-  color: #5C4A00;
-  box-shadow:
-    2px 3px 8px rgba(0,0,0,0.12),
-    inset 0 0 30px rgba(255,255,255,0.2);
-}
-
-/* Pin effect - alternative to tape */
-.postit-pin::before {
-  content: '' !important;
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 40% 35%, #FF6B6B, #CC3333);
-  box-shadow:
-    0 2px 4px rgba(0,0,0,0.3),
-    inset 0 -2px 3px rgba(0,0,0,0.2),
-    inset 0 1px 2px rgba(255,255,255,0.3);
-  z-index: 3;
-}
-
-/* Stick animation when adding a note */
-@keyframes stickit {
+/* Drop animation for new notes */
+@keyframes dropIn {
   0% {
-    transform: scale(0.3) rotate(-15deg);
+    transform: translateY(-20px) scale(0.9);
     opacity: 0;
   }
-  50% {
-    transform: scale(1.08) rotate(2deg);
-    opacity: 1;
-  }
   100% {
-    transform: scale(1) rotate(var(--rotation, 0deg));
+    transform: translateY(0) scale(1);
     opacity: 1;
   }
 }
 
 .note-enter {
-  animation: stickit 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: dropIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 /* ====================================================
    POOL / WATER VISUALS
    ==================================================== */
 
-/* The pool container - bird's eye view */
+/* The pool container - bird's eye view of a swimming pool */
 .pool-container {
-  background: linear-gradient(
-    180deg,
-    #E0F7FA 0%,
-    #B2EBF2 20%,
-    #80DEEA 40%,
-    #4DD0E1 60%,
-    #26C6DA 80%,
-    #00BCD4 100%
-  );
-  border-radius: 30px;
+  background:
+    /* Tile grid pattern */
+    linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px),
+    /* Water gradient */
+    linear-gradient(
+      180deg,
+      #B2EBF2 0%,
+      #80DEEA 25%,
+      #4DD0E1 50%,
+      #26C6DA 75%,
+      #00ACC1 100%
+    );
+  background-size:
+    40px 40px,
+    40px 40px,
+    100% 100%;
+  border-radius: 16px;
   position: relative;
   overflow: hidden;
 }
 
-/* Animated water caustics */
+/* Soft caustic light on water */
 .pool-container::before {
   content: '';
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at 25% 25%, rgba(255,255,255,0.3) 0%, transparent 50%),
-    radial-gradient(ellipse at 75% 75%, rgba(255,255,255,0.2) 0%, transparent 40%),
-    radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.15) 0%, transparent 60%);
-  animation: caustics 8s ease-in-out infinite alternate;
+    radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(255,255,255,0.15) 0%, transparent 40%);
+  animation: caustics 10s ease-in-out infinite alternate;
   pointer-events: none;
 }
 
 @keyframes caustics {
-  0% {
-    background-position: 0% 0%, 100% 100%, 50% 50%;
-    opacity: 0.6;
-  }
-  33% {
-    background-position: 30% 20%, 70% 80%, 40% 60%;
-    opacity: 0.8;
-  }
-  66% {
-    background-position: 60% 40%, 40% 60%, 60% 40%;
-    opacity: 0.5;
-  }
-  100% {
-    background-position: 100% 100%, 0% 0%, 50% 50%;
-    opacity: 0.7;
-  }
+  0% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.5; }
 }
 
 /* Pool tiles floating on water */
@@ -353,23 +179,10 @@ body {
   animation: float 4s ease-in-out infinite;
 }
 
-/* Water wave along the bottom */
-.wave-bottom::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 40px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 40'%3E%3Cpath d='M0,20 C150,35 350,5 600,20 C850,35 1050,5 1200,20 L1200,40 L0,40 Z' fill='%2380DEEA' opacity='0.3'/%3E%3Cpath d='M0,25 C200,10 400,35 600,20 C800,5 1000,30 1200,15 L1200,40 L0,40 Z' fill='%2326C6DA' opacity='0.2'/%3E%3C/svg%3E") repeat-x;
-  background-size: 1200px 40px;
-  animation: waveSlide 12s linear infinite;
-  pointer-events: none;
-}
-
-@keyframes waveSlide {
-  0% { background-position-x: 0; }
-  100% { background-position-x: 1200px; }
+/* Lane line divider for pool */
+.pool-lane {
+  background: rgba(255,255,255,0.2);
+  width: 2px;
 }
 
 /* ====================================================
@@ -509,24 +322,6 @@ body {
 /* ====================================================
    UTILITY
    ==================================================== */
-
-/* Masonry-style columns for notes */
-.notes-masonry {
-  column-count: 2;
-  column-gap: 16px;
-}
-
-@media (min-width: 768px) {
-  .notes-masonry {
-    column-count: 3;
-    column-gap: 20px;
-  }
-}
-
-.notes-masonry > * {
-  break-inside: avoid;
-  margin-bottom: 16px;
-}
 
 /* Pool depth indicator fill */
 .depth-fill {

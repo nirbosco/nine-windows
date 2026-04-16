@@ -4,18 +4,12 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { WINDOWS } from '@/lib/windows-data'
-import { Note, NoteType, NOTE_TYPE_CONFIG, GroupMember } from '@/lib/types'
+import { Note, Depth, DEPTH_CONFIG, GroupMember } from '@/lib/types'
 
 const THEME_MAP: Record<string, string> = {
   present: 'theme-present',
   past: 'theme-past',
   future: 'theme-future',
-}
-
-const POSTIT_CLASSES: Record<NoteType, string> = {
-  question: 'postit-question',
-  knowledge: 'postit-knowledge',
-  thought: 'postit-thought',
 }
 
 export default function WindowDetail() {
@@ -31,12 +25,13 @@ export default function WindowDetail() {
   const [members, setMembers] = useState<GroupMember[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Form state
-  const [noteType, setNoteType] = useState<NoteType>('thought')
+  const [depth, setDepth] = useState<Depth>('floating')
   const [noteContent, setNoteContent] = useState('')
   const [authorName, setAuthorName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [justAdded, setJustAdded] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState('')
 
   const themeClass = THEME_MAP[win.timeFrame]
 
@@ -82,7 +77,7 @@ export default function WindowDetail() {
         group_id: groupId,
         window_number: winNum,
         content: noteContent.trim(),
-        note_type: noteType,
+        depth,
         author_name: authorName || null,
       })
       .select()
@@ -103,6 +98,29 @@ export default function WindowDetail() {
     setNotes((prev) => prev.filter((n) => n.id !== noteId))
   }
 
+  async function handleToggleDepth(note: Note) {
+    const newDepth: Depth = note.depth === 'floating' ? 'deep' : 'floating'
+    await supabase.from('notes').update({ depth: newDepth }).eq('id', note.id)
+    setNotes((prev) =>
+      prev.map((n) => (n.id === note.id ? { ...n, depth: newDepth } : n))
+    )
+  }
+
+  async function handleEditSave(noteId: string) {
+    if (!editContent.trim()) return
+    await supabase
+      .from('notes')
+      .update({ content: editContent.trim() })
+      .eq('id', noteId)
+    setNotes((prev) =>
+      prev.map((n) =>
+        n.id === noteId ? { ...n, content: editContent.trim() } : n
+      )
+    )
+    setEditingId(null)
+    setEditContent('')
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
@@ -111,16 +129,9 @@ export default function WindowDetail() {
     )
   }
 
+  const floatingNotes = notes.filter((n) => n.depth === 'floating')
+  const deepNotes = notes.filter((n) => n.depth === 'deep')
   const depthPercent = Math.round((winNum / 9) * 100)
-
-  // Rotation patterns for post-its — each gets a slightly different angle
-  const getRotation = (idx: number) => {
-    const rotations = [-2.5, 1.2, -0.8, 2.1, -1.5, 0.6, -1.8, 2.8, -0.3, 1.7]
-    return rotations[idx % rotations.length]
-  }
-
-  // Alternate between tape and pin
-  const getAttachment = (idx: number) => (idx % 3 === 0 ? 'pin' : 'tape')
 
   return (
     <main className={`min-h-screen page-enter ${themeClass}`}>
@@ -132,17 +143,23 @@ export default function WindowDetail() {
             className="text-gray-500 hover:text-gray-700 text-sm flex items-center gap-1 cursor-pointer"
           >
             <span>&rarr;</span>
-            <span>חזרה לטבלה</span>
+            <span>חזרה לבריכה</span>
           </button>
 
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium" style={{ color: 'var(--theme-primary)' }}>
+            <span
+              className="text-sm font-medium"
+              style={{ color: 'var(--theme-primary)' }}
+            >
               שלב {winNum} מתוך 9
             </span>
             <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
                 className="h-full depth-fill rounded-full"
-                style={{ width: `${depthPercent}%`, background: 'var(--theme-gradient)' }}
+                style={{
+                  width: `${depthPercent}%`,
+                  background: 'var(--theme-gradient)',
+                }}
               />
             </div>
           </div>
@@ -172,7 +189,7 @@ export default function WindowDetail() {
         </div>
       </div>
 
-      {/* Window header — unique gradient per time frame */}
+      {/* Window header */}
       <div className="window-header relative overflow-hidden">
         <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
           <div className="flex items-center gap-4 mb-3">
@@ -188,9 +205,16 @@ export default function WindowDetail() {
             {win.description}
           </p>
         </div>
-        {/* Decorative wave at bottom of header */}
-        <svg className="absolute bottom-0 left-0 right-0 w-full" viewBox="0 0 1200 40" preserveAspectRatio="none" style={{ height: '30px' }}>
-          <path d="M0,25 C200,40 400,10 600,25 C800,40 1000,10 1200,25 L1200,40 L0,40 Z" fill="var(--background)" />
+        <svg
+          className="absolute bottom-0 left-0 right-0 w-full"
+          viewBox="0 0 1200 40"
+          preserveAspectRatio="none"
+          style={{ height: '30px' }}
+        >
+          <path
+            d="M0,25 C200,40 400,10 600,25 C800,40 1000,10 1200,25 L1200,40 L0,40 Z"
+            fill="var(--background)"
+          />
         </svg>
       </div>
 
@@ -199,58 +223,85 @@ export default function WindowDetail() {
           {/* RTL: first column = right side = sidebar */}
           <div className="space-y-5">
             {/* Guiding questions card */}
-            <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--theme-accent)', background: 'var(--theme-bg)' }}>
-              <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--theme-accent)' }}>
-                <h3 className="text-sm font-bold" style={{ color: 'var(--theme-primary)' }}>
+            <div
+              className="rounded-2xl border overflow-hidden"
+              style={{
+                borderColor: 'var(--theme-accent)',
+                background: 'var(--theme-bg)',
+              }}
+            >
+              <div
+                className="px-5 py-4"
+                style={{ borderBottom: '1px solid var(--theme-accent)' }}
+              >
+                <h3
+                  className="text-sm font-bold"
+                  style={{ color: 'var(--theme-primary)' }}
+                >
                   שאלות מכוונות
                 </h3>
               </div>
               <ul className="px-5 py-4 space-y-3">
                 {win.questions.map((q, i) => (
-                  <li key={i} className="flex gap-2 text-sm" style={{ color: 'var(--theme-text)' }}>
-                    <span style={{ color: 'var(--theme-accent)' }} className="shrink-0 mt-0.5">&#x25CF;</span>
+                  <li
+                    key={i}
+                    className="flex gap-2 text-sm"
+                    style={{ color: 'var(--theme-text)' }}
+                  >
+                    <span
+                      style={{ color: 'var(--theme-accent)' }}
+                      className="shrink-0 mt-0.5"
+                    >
+                      &#x25CF;
+                    </span>
                     <span className="leading-relaxed opacity-85">{q}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Add note form — styled like a post-it being written */}
-            <div className="rounded-2xl p-5 border" style={{ background: 'var(--theme-bg)', borderColor: 'var(--theme-accent)' }}>
-              <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--theme-primary)' }}>
-                הדביקו פתק חדש
+            {/* Add note form */}
+            <div
+              className="rounded-2xl p-5 border"
+              style={{
+                background: 'var(--theme-bg)',
+                borderColor: 'var(--theme-accent)',
+              }}
+            >
+              <h3
+                className="text-sm font-bold mb-4"
+                style={{ color: 'var(--theme-primary)' }}
+              >
+                הוסיפו נקודה לבריכה
               </h3>
 
-              {/* Note type selector */}
+              {/* Depth selector */}
               <div className="flex gap-2 mb-4">
-                {(['question', 'knowledge', 'thought'] as NoteType[]).map((type) => {
-                  const colors: Record<NoteType, { bg: string; active: string; text: string }> = {
-                    question: { bg: '#C5E8F7', active: '#A8D8EA', text: '#1A4971' },
-                    knowledge: { bg: '#C5F0D5', active: '#A8E6C1', text: '#1A4A30' },
-                    thought: { bg: '#FFFAA0', active: '#FFF176', text: '#5C4A00' },
-                  }
-                  const c = colors[type]
-                  const isActive = noteType === type
-
+                {(['floating', 'deep'] as Depth[]).map((d) => {
+                  const config = DEPTH_CONFIG[d]
+                  const isActive = depth === d
                   return (
                     <button
-                      key={type}
-                      onClick={() => setNoteType(type)}
-                      className="px-3 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer border-2"
-                      style={{
-                        background: isActive ? c.active : 'white',
-                        borderColor: isActive ? c.text : 'transparent',
-                        color: c.text,
-                        boxShadow: isActive ? `0 2px 8px ${c.active}80` : 'none',
-                      }}
+                      key={d}
+                      onClick={() => setDepth(d)}
+                      className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer border-2 ${
+                        isActive
+                          ? `${config.bgClass} ${config.borderClass} ${config.textClass}`
+                          : 'bg-white border-gray-200 text-gray-400'
+                      }`}
                     >
-                      {NOTE_TYPE_CONFIG[type].label}
+                      <span className="text-lg ml-1">{config.icon}</span>
+                      {config.label}
+                      <span className="block text-[10px] font-normal opacity-70 mt-0.5">
+                        {d === 'floating'
+                          ? 'תצפיות ראשוניות'
+                          : 'תובנות עמוקות'}
+                      </span>
                     </button>
                   )
                 })}
               </div>
 
-              {/* Textarea */}
               <textarea
                 value={noteContent}
                 onChange={(e) => setNoteContent(e.target.value)}
@@ -270,7 +321,6 @@ export default function WindowDetail() {
                     value={authorName}
                     onChange={(e) => setAuthorName(e.target.value)}
                     className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 bg-white"
-                    style={{ ['--tw-ring-color' as string]: 'var(--theme-primary)' }}
                   >
                     <option value="">בחרו שם</option>
                     {members.map((m) => (
@@ -294,7 +344,7 @@ export default function WindowDetail() {
                   disabled={!noteContent.trim() || submitting}
                   className="px-6 py-2 btn-theme font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ms-auto text-sm"
                 >
-                  {submitting ? 'מדביק...' : 'הדביקו!'}
+                  {submitting ? 'מוסיף...' : 'הוסיפו'}
                 </button>
               </div>
 
@@ -304,82 +354,121 @@ export default function WindowDetail() {
             </div>
           </div>
 
-          {/* RTL: second column = left side = cork board */}
+          {/* RTL: second column = left side = pool area */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold" style={{ color: 'var(--theme-text)' }}>
-                פתקים על הלוח ({notes.length})
+              <h2
+                className="text-lg font-bold"
+                style={{ color: 'var(--theme-text)' }}
+              >
+                נקודות בבריכה ({notes.length})
               </h2>
+              <div className="flex gap-3 text-xs">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-cyan-400" />
+                  צף ({floatingNotes.length})
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-indigo-500" />
+                  צולל ({deepNotes.length})
+                </span>
+              </div>
             </div>
 
             {notes.length === 0 ? (
-              <div className="cork-board cork-frame rounded-2xl p-12 text-center min-h-[300px] flex items-center justify-center">
-                <p className="text-white/70 text-lg font-medium">
-                  הלוח ריק — הדביקו את הפתק הראשון!
-                </p>
+              <div className="pool-container rounded-2xl p-12 text-center min-h-[300px] flex items-center justify-center">
+                <div>
+                  <div className="text-4xl mb-3 opacity-40">~</div>
+                  <p className="text-white/80 text-lg font-medium">
+                    הבריכה ריקה
+                  </p>
+                  <p className="text-white/50 text-sm mt-1">
+                    הוסיפו את הנקודה הראשונה
+                  </p>
+                </div>
               </div>
             ) : (
-              <div className="cork-board cork-frame rounded-2xl p-6 min-h-[400px]">
-                <div className="notes-masonry">
-                  {notes.map((note, idx) => {
-                    const config = NOTE_TYPE_CONFIG[note.note_type]
-                    const rotation = getRotation(idx)
-                    const attachment = getAttachment(idx)
-                    const isNew = note.id === justAdded
+              <div className="space-y-6">
+                {/* Floating layer */}
+                {floatingNotes.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-lg">~</span>
+                      <h3 className="text-sm font-bold text-cyan-700">
+                        צף — על פני השטח
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {floatingNotes.map((note) => (
+                        <NoteCard
+                          key={note.id}
+                          note={note}
+                          isNew={note.id === justAdded}
+                          editingId={editingId}
+                          editContent={editContent}
+                          onDelete={handleDelete}
+                          onToggleDepth={handleToggleDepth}
+                          onEditStart={(n) => {
+                            setEditingId(n.id)
+                            setEditContent(n.content)
+                          }}
+                          onEditSave={handleEditSave}
+                          onEditCancel={() => {
+                            setEditingId(null)
+                            setEditContent('')
+                          }}
+                          onEditChange={setEditContent}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                    return (
-                      <div
-                        key={note.id}
-                        className={`postit ${POSTIT_CLASSES[note.note_type]} rounded-sm ${isNew ? 'note-enter' : ''}`}
-                        style={{
-                          transform: `rotate(${rotation}deg)`,
-                          ['--rotation' as string]: `${rotation}deg`,
-                        }}
-                      >
-                        {/* Tape or pin */}
-                        {attachment === 'tape' ? (
-                          <div className="postit-tape" style={{ transform: `translateX(-50%) rotate(${rotation > 0 ? -3 : 3}deg)` }} />
-                        ) : (
-                          <div className="absolute top-2 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full z-10"
-                            style={{
-                              background: 'radial-gradient(circle at 40% 35%, #FF6B6B, #CC3333)',
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 -2px 3px rgba(0,0,0,0.2), inset 0 1px 2px rgba(255,255,255,0.3)',
-                            }}
-                          />
-                        )}
+                {/* Divider */}
+                {floatingNotes.length > 0 && deepNotes.length > 0 && (
+                  <div className="flex items-center gap-3 opacity-30">
+                    <div className="flex-1 border-t border-dashed border-gray-400" />
+                    <span className="text-xs text-gray-500">עומק</span>
+                    <div className="flex-1 border-t border-dashed border-gray-400" />
+                  </div>
+                )}
 
-                        {/* Delete button */}
-                        <button
-                          onClick={() => handleDelete(note.id)}
-                          className="absolute top-2 left-2 w-5 h-5 rounded-full bg-white/50 text-gray-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center text-xs opacity-0 hover:opacity-100 transition-opacity cursor-pointer z-20"
-                          title="מחיקה"
-                        >
-                          X
-                        </button>
-
-                        {/* Type badge */}
-                        <div className="flex items-center gap-2 mb-2 mt-1">
-                          <span className={`w-2.5 h-2.5 rounded-full ${config.dotClass}`} />
-                          <span className="text-[10px] font-bold uppercase tracking-wide opacity-70">
-                            {config.label}
-                          </span>
-                        </div>
-
-                        {/* Content */}
-                        <p className="text-sm leading-relaxed font-medium">
-                          {note.content}
-                        </p>
-
-                        {/* Author */}
-                        {note.author_name && (
-                          <p className="text-[10px] opacity-50 mt-3 font-medium">
-                            — {note.author_name}
-                          </p>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
+                {/* Deep layer */}
+                {deepNotes.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-lg font-bold text-indigo-400">
+                        //
+                      </span>
+                      <h3 className="text-sm font-bold text-indigo-700">
+                        צולל — לעומק
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {deepNotes.map((note) => (
+                        <NoteCard
+                          key={note.id}
+                          note={note}
+                          isNew={note.id === justAdded}
+                          editingId={editingId}
+                          editContent={editContent}
+                          onDelete={handleDelete}
+                          onToggleDepth={handleToggleDepth}
+                          onEditStart={(n) => {
+                            setEditingId(n.id)
+                            setEditContent(n.content)
+                          }}
+                          onEditSave={handleEditSave}
+                          onEditCancel={() => {
+                            setEditingId(null)
+                            setEditContent('')
+                          }}
+                          onEditChange={setEditContent}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -406,7 +495,7 @@ export default function WindowDetail() {
             onClick={() => router.push(`/workshop/${groupId}`)}
             className="px-4 py-2 text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
           >
-            חזרה לטבלה
+            חזרה לבריכה
           </button>
 
           {winNum < 9 ? (
@@ -423,11 +512,120 @@ export default function WindowDetail() {
               onClick={() => router.push(`/workshop/${groupId}`)}
               className="px-4 py-2 text-sm bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-lg hover:from-amber-600 hover:to-amber-700 transition-all cursor-pointer"
             >
-              סיום - חזרה לטבלה
+              סיום — חזרה לבריכה
             </button>
           )}
         </div>
       </div>
     </main>
+  )
+}
+
+function NoteCard({
+  note,
+  isNew,
+  editingId,
+  editContent,
+  onDelete,
+  onToggleDepth,
+  onEditStart,
+  onEditSave,
+  onEditCancel,
+  onEditChange,
+}: {
+  note: Note
+  isNew: boolean
+  editingId: string | null
+  editContent: string
+  onDelete: (id: string) => void
+  onToggleDepth: (note: Note) => void
+  onEditStart: (note: Note) => void
+  onEditSave: (id: string) => void
+  onEditCancel: () => void
+  onEditChange: (val: string) => void
+}) {
+  const config = DEPTH_CONFIG[note.depth]
+  const isEditing = editingId === note.id
+
+  return (
+    <div
+      className={`dot-card rounded-xl p-4 border-2 transition-all ${config.bgClass} ${config.borderClass} ${isNew ? 'note-enter' : ''}`}
+    >
+      {/* Top row: depth badge + actions */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          <span className={`w-2.5 h-2.5 rounded-full ${config.dotClass}`} />
+          <span
+            className={`text-[10px] font-bold ${config.textClass} opacity-70`}
+          >
+            {config.label}
+          </span>
+        </div>
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity">
+          <button
+            onClick={() => onToggleDepth(note)}
+            className="w-6 h-6 rounded-md bg-white/60 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center text-[10px] cursor-pointer"
+            title={
+              note.depth === 'floating' ? 'העבר לצולל' : 'העבר לצף'
+            }
+          >
+            {note.depth === 'floating' ? '//' : '~'}
+          </button>
+          <button
+            onClick={() => onEditStart(note)}
+            className="w-6 h-6 rounded-md bg-white/60 text-gray-400 hover:text-teal-600 hover:bg-teal-50 flex items-center justify-center text-[10px] cursor-pointer"
+            title="עריכה"
+          >
+            &#9998;
+          </button>
+          <button
+            onClick={() => onDelete(note.id)}
+            className="w-6 h-6 rounded-md bg-white/60 text-gray-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center text-[10px] cursor-pointer"
+            title="מחיקה"
+          >
+            &times;
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      {isEditing ? (
+        <div>
+          <textarea
+            value={editContent}
+            onChange={(e) => onEditChange(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white resize-none focus:outline-none focus:border-teal-500"
+            rows={3}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey))
+                onEditSave(note.id)
+              if (e.key === 'Escape') onEditCancel()
+            }}
+          />
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={() => onEditSave(note.id)}
+              className="px-3 py-1 text-xs bg-teal-600 text-white rounded-md cursor-pointer"
+            >
+              שמור
+            </button>
+            <button
+              onClick={onEditCancel}
+              className="px-3 py-1 text-xs text-gray-500 cursor-pointer"
+            >
+              ביטול
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm leading-relaxed">{note.content}</p>
+      )}
+
+      {/* Author */}
+      {note.author_name && !isEditing && (
+        <p className="text-[10px] opacity-50 mt-2">— {note.author_name}</p>
+      )}
+    </div>
   )
 }
