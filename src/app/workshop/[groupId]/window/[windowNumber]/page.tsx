@@ -393,34 +393,29 @@ export default function WindowDetail() {
                     עדיין אין כלום שצף כאן
                   </p>
                 ) : (
-                  <div
-                    className="columns-1 sm:columns-2 gap-3"
-                    style={{ columnFill: 'balance' }}
-                  >
-                    {floatingNotes.map((note, idx) => (
-                      <div key={note.id} className="mb-3 break-inside-avoid">
-                        <NoteCard
-                          note={note}
-                          idx={idx}
-                          isNew={note.id === justAdded}
-                          editingId={editingId}
-                          editContent={editContent}
-                          onDelete={handleDelete}
-                          onToggleDepth={handleToggleDepth}
-                          onEditStart={(n) => {
-                            setEditingId(n.id)
-                            setEditContent(n.content)
-                          }}
-                          onEditSave={handleEditSave}
-                          onEditCancel={() => {
-                            setEditingId(null)
-                            setEditContent('')
-                          }}
-                          onEditChange={setEditContent}
-                        />
-                      </div>
+                  <ul className="space-y-2">
+                    {floatingNotes.map((note) => (
+                      <NoteBullet
+                        key={note.id}
+                        note={note}
+                        isNew={note.id === justAdded}
+                        editingId={editingId}
+                        editContent={editContent}
+                        onDelete={handleDelete}
+                        onToggleDepth={handleToggleDepth}
+                        onEditStart={(n) => {
+                          setEditingId(n.id)
+                          setEditContent(n.content)
+                        }}
+                        onEditSave={handleEditSave}
+                        onEditCancel={() => {
+                          setEditingId(null)
+                          setEditContent('')
+                        }}
+                        onEditChange={setEditContent}
+                      />
                     ))}
-                  </div>
+                  </ul>
                 )}
               </div>
 
@@ -447,34 +442,29 @@ export default function WindowDetail() {
                     עדיין לא צללנו לכאן
                   </p>
                 ) : (
-                  <div
-                    className="columns-1 sm:columns-2 gap-3"
-                    style={{ columnFill: 'balance' }}
-                  >
-                    {deepNotes.map((note, idx) => (
-                      <div key={note.id} className="mb-3 break-inside-avoid">
-                        <NoteCard
-                          note={note}
-                          idx={idx}
-                          isNew={note.id === justAdded}
-                          editingId={editingId}
-                          editContent={editContent}
-                          onDelete={handleDelete}
-                          onToggleDepth={handleToggleDepth}
-                          onEditStart={(n) => {
-                            setEditingId(n.id)
-                            setEditContent(n.content)
-                          }}
-                          onEditSave={handleEditSave}
-                          onEditCancel={() => {
-                            setEditingId(null)
-                            setEditContent('')
-                          }}
-                          onEditChange={setEditContent}
-                        />
-                      </div>
+                  <ul className="space-y-2">
+                    {deepNotes.map((note) => (
+                      <NoteBullet
+                        key={note.id}
+                        note={note}
+                        isNew={note.id === justAdded}
+                        editingId={editingId}
+                        editContent={editContent}
+                        onDelete={handleDelete}
+                        onToggleDepth={handleToggleDepth}
+                        onEditStart={(n) => {
+                          setEditingId(n.id)
+                          setEditContent(n.content)
+                        }}
+                        onEditSave={handleEditSave}
+                        onEditCancel={() => {
+                          setEditingId(null)
+                          setEditContent('')
+                        }}
+                        onEditChange={setEditContent}
+                      />
                     ))}
-                  </div>
+                  </ul>
                 )}
               </div>
             </div>
@@ -528,9 +518,8 @@ export default function WindowDetail() {
   )
 }
 
-function NoteCard({
+function NoteBullet({
   note,
-  idx,
   isNew,
   editingId,
   editContent,
@@ -542,7 +531,6 @@ function NoteCard({
   onEditChange,
 }: {
   note: Note
-  idx: number
   isNew: boolean
   editingId: string | null
   editContent: string
@@ -553,62 +541,23 @@ function NoteCard({
   onEditCancel: () => void
   onEditChange: (val: string) => void
 }) {
-  const config = DEPTH_CONFIG[note.depth]
   const isEditing = editingId === note.id
-  const rotClasses = ['rot-a', 'rot-b', 'rot-c', 'rot-d', 'rot-e']
-  const rotClass = rotClasses[idx % rotClasses.length]
-  const bobDelay = `${(idx % 5) * 0.7}s`
+  const isDeep = note.depth === 'deep'
+  const bulletColor = isDeep ? 'bg-white' : 'bg-cyan-600'
+  const textColor = isDeep ? 'text-white' : 'text-cyan-950'
+  const authorColor = isDeep ? 'text-white/60' : 'text-cyan-900/60'
+  const hoverBg = isDeep ? 'hover:bg-white/10' : 'hover:bg-white/40'
 
-  return (
-    <div
-      className={`dot-card ${rotClass} ${note.depth === 'floating' ? 'depth-floating' : ''} rounded-2xl p-4 border-2 ${config.bgClass} ${config.borderClass} ${isNew ? 'note-enter' : ''}`}
-      style={{ ['--bob-delay' as string]: bobDelay }}
-    >
-      {/* Top row: depth badge + actions */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1.5">
-          <span className={`w-2.5 h-2.5 rounded-full ${config.dotClass}`} />
-          <span
-            className={`text-[10px] font-bold ${config.textClass} opacity-70`}
-          >
-            {config.label}
-          </span>
-        </div>
-        <div className="dot-actions flex gap-1">
-          <button
-            onClick={() => onToggleDepth(note)}
-            className="w-6 h-6 rounded-md bg-white/60 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center text-[10px] cursor-pointer"
-            title={
-              note.depth === 'floating' ? 'העבר לצולל' : 'העבר לצף'
-            }
-          >
-            {note.depth === 'floating' ? '//' : '~'}
-          </button>
-          <button
-            onClick={() => onEditStart(note)}
-            className="w-6 h-6 rounded-md bg-white/60 text-gray-400 hover:text-teal-600 hover:bg-teal-50 flex items-center justify-center text-[10px] cursor-pointer"
-            title="עריכה"
-          >
-            &#9998;
-          </button>
-          <button
-            onClick={() => onDelete(note.id)}
-            className="w-6 h-6 rounded-md bg-white/60 text-gray-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center text-[10px] cursor-pointer"
-            title="מחיקה"
-          >
-            &times;
-          </button>
-        </div>
-      </div>
-
-      {/* Content */}
-      {isEditing ? (
-        <div>
+  if (isEditing) {
+    return (
+      <li className="flex gap-3 items-start py-2 px-2 rounded-lg bg-white/90">
+        <span className={`w-2 h-2 rounded-full ${bulletColor} mt-2.5 shrink-0`} />
+        <div className="flex-1 min-w-0">
           <textarea
             value={editContent}
             onChange={(e) => onEditChange(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white resize-none focus:outline-none focus:border-teal-500"
-            rows={3}
+            rows={2}
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey))
@@ -631,14 +580,60 @@ function NoteCard({
             </button>
           </div>
         </div>
-      ) : (
-        <p className="text-sm leading-relaxed">{note.content}</p>
-      )}
+      </li>
+    )
+  }
 
-      {/* Author */}
-      {note.author_name && !isEditing && (
-        <p className="text-[10px] opacity-50 mt-2">— {note.author_name}</p>
-      )}
-    </div>
+  return (
+    <li
+      className={`group flex gap-3 items-start py-1.5 px-2 rounded-lg ${hoverBg} transition-colors ${isNew ? 'note-enter' : ''}`}
+    >
+      <span
+        className={`w-2 h-2 rounded-full ${bulletColor} mt-2 shrink-0`}
+      />
+      <div className={`flex-1 min-w-0 text-sm leading-relaxed ${textColor}`}>
+        {note.content}
+        {note.author_name && (
+          <span className={`text-[10px] mr-2 ${authorColor}`}>
+            — {note.author_name}
+          </span>
+        )}
+      </div>
+      <div className="dot-actions flex gap-0.5 shrink-0">
+        <button
+          onClick={() => onToggleDepth(note)}
+          className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold cursor-pointer ${
+            isDeep
+              ? 'bg-white/20 text-white hover:bg-white/30'
+              : 'bg-white/60 text-gray-500 hover:text-indigo-600'
+          }`}
+          title={isDeep ? 'העבר לצף' : 'העבר לצולל'}
+        >
+          {isDeep ? '~' : '//'}
+        </button>
+        <button
+          onClick={() => onEditStart(note)}
+          className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] cursor-pointer ${
+            isDeep
+              ? 'bg-white/20 text-white hover:bg-white/30'
+              : 'bg-white/60 text-gray-500 hover:text-teal-600'
+          }`}
+          title="עריכה"
+        >
+          &#9998;
+        </button>
+        <button
+          onClick={() => onDelete(note.id)}
+          className={`w-6 h-6 rounded-md flex items-center justify-center text-xs cursor-pointer ${
+            isDeep
+              ? 'bg-white/20 text-white hover:bg-red-500'
+              : 'bg-white/60 text-gray-500 hover:text-red-500'
+          }`}
+          title="מחיקה"
+        >
+          &times;
+        </button>
+      </div>
+    </li>
   )
 }
