@@ -9,8 +9,8 @@ import {
   GroupMember,
   Note,
   Depth,
-  DEPTH_CONFIG,
 } from '@/lib/types'
+import { EditorialChrome } from '@/components/EditorialChrome'
 
 interface GroupData {
   group: Group
@@ -18,14 +18,14 @@ interface GroupData {
   notes: Note[]
 }
 
+type ViewMode = 'pools' | 'heatmap' | 'feed'
+
 export default function AdminPage() {
   const [challenges, setChallenges] = useState<Challenge[]>([])
   const [selectedChallenge, setSelectedChallenge] = useState<string | null>(null)
   const [groupsData, setGroupsData] = useState<GroupData[]>([])
-  const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
-  const [filterDepth, setFilterDepth] = useState<Depth | 'all'>('all')
   const [loading, setLoading] = useState(true)
-  const [viewMode, setViewMode] = useState<'group' | 'cumulative'>('group')
+  const [view, setView] = useState<ViewMode>('pools')
 
   useEffect(() => {
     async function load() {
@@ -66,7 +66,7 @@ export default function AdminPage() {
             .from('notes')
             .select('*')
             .eq('group_id', group.id)
-            .order('created_at'),
+            .order('created_at', { ascending: false }),
         ])
 
         allData.push({
@@ -77,17 +77,17 @@ export default function AdminPage() {
       }
 
       setGroupsData(allData)
-      if (allData.length > 0 && !selectedGroup) {
-        setSelectedGroup(allData[0].group.id)
-      }
     }
 
     loadGroups()
-  }, [selectedChallenge, selectedGroup])
+  }, [selectedChallenge])
 
-  async function handleExport(gd: GroupData) {
+  function handleExportAll() {
+    groupsData.forEach((gd) => handleExportOne(gd))
+  }
+
+  function handleExportOne(gd: GroupData) {
     const challenge = challenges.find((c) => c.id === selectedChallenge)
-
     let text = '===========================================\n'
     text += 'תשעת החלונות - ניתוח אתגר\n'
     text += "אדוות | מחזור ז'\n"
@@ -102,36 +102,24 @@ export default function AdminPage() {
       text += `חלון ${win.number}: ${win.title}\n`
       text += `${win.subtitle}\n`
       text += '-------------------------------------------\n\n'
-
-      const windowNotes = gd.notes.filter(
-        (n) => n.window_number === win.number,
-      )
-
-      const depths: { key: Depth; label: string }[] = [
-        { key: 'floating', label: 'צף (על פני השטח)' },
-        { key: 'deep', label: 'צולל (לעומק)' },
-      ]
-
-      for (const d of depths) {
-        const typed = windowNotes.filter((n) => n.depth === d.key)
-        if (typed.length > 0) {
-          text += `${d.label}:\n`
-          typed.forEach((n) => {
-            text += `  * ${n.content}${n.author_name ? ` (${n.author_name})` : ''}\n`
-          })
-          text += '\n'
-        }
+      const wn = gd.notes.filter((n) => n.window_number === win.number)
+      const floating = wn.filter((n) => n.depth === 'floating')
+      const deep = wn.filter((n) => n.depth === 'deep')
+      if (floating.length > 0) {
+        text += 'צף:\n'
+        floating.forEach((n) => {
+          text += `  * ${n.content}${n.author_name ? ` (${n.author_name})` : ''}\n`
+        })
+        text += '\n'
       }
-
-      if (windowNotes.length === 0) {
-        text += '(אין נקודות בחלון זה)\n\n'
+      if (deep.length > 0) {
+        text += 'צולל:\n'
+        deep.forEach((n) => {
+          text += `  * ${n.content}${n.author_name ? ` (${n.author_name})` : ''}\n`
+        })
+        text += '\n'
       }
     }
-
-    text += '===========================================\n'
-    text += `סה"כ נקודות: ${gd.notes.length}\n`
-    text += `צף: ${gd.notes.filter((n) => n.depth === 'floating').length}`
-    text += ` | צולל: ${gd.notes.filter((n) => n.depth === 'deep').length}\n`
 
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
     const url = URL.createObjectURL(blob)
@@ -142,423 +130,366 @@ export default function AdminPage() {
     URL.revokeObjectURL(url)
   }
 
-  function handleExportAll() {
-    groupsData.forEach((gd) => handleExport(gd))
-  }
-
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full" />
+      <main className="ed-root min-h-screen flex items-center justify-center">
+        <div className="text-sm ed-mono">טוען...</div>
       </main>
     )
   }
 
-  const activeGroupData = groupsData.find((g) => g.group.id === selectedGroup)
-
-  // Cumulative: merge all notes from all groups
   const allNotes = groupsData.flatMap((gd) => gd.notes)
+  const totalFloating = allNotes.filter((n) => n.depth === 'floating').length
+  const totalDeep = allNotes.filter((n) => n.depth === 'deep').length
+  const activeGroups = groupsData.filter((gd) => {
+    const latest = gd.notes[0]
+    if (!latest) return false
+    return Date.now() - new Date(latest.created_at).getTime() < 15 * 60 * 1000
+  }).length
+  const latestNote = allNotes.sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  )[0]
+
+  const currentChallenge = challenges.find((c) => c.id === selectedChallenge)
+
+  // Build heatmap data [groups][windows]
+  const heatData = groupsData.map((gd) => {
+    const row: number[] = []
+    for (let w = 1; w <= 9; w++) {
+      row.push(gd.notes.filter((n) => n.window_number === w).length)
+    }
+    return row
+  })
+  const heatColor = (v: number) => {
+    if (v < 3) return '#EDF3F7'
+    if (v < 5) return '#D6E4EC'
+    if (v < 7) return '#7BAAC2'
+    if (v < 10) return '#2D6F94'
+    if (v < 15) return '#0F4A78'
+    return '#0A3556'
+  }
+
+  const r = (a: number, b: number) => a + Math.random() * (b - a)
+
+  // All notes for feed, sorted by time
+  const feedItems = allNotes
+    .map((n) => {
+      const gd = groupsData.find((g) => g.notes.some((nn) => nn.id === n.id))
+      return { note: n, groupName: gd?.group.name || '' }
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.note.created_at).getTime() -
+        new Date(a.note.created_at).getTime(),
+    )
 
   return (
-    <main className="min-h-screen px-4 py-6 max-w-7xl mx-auto page-enter">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <img src="/eduvot-logo-light.jpeg" alt="אדוות" className="h-9" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">דשבורד ניהול</h1>
-            <p className="text-sm text-gray-500">תשעת החלונות — אדוות</p>
-          </div>
-        </div>
-        <a
-          href="/"
-          className="text-sm text-teal-600 hover:text-teal-700"
-        >
-          חזרה לאפליקציה &larr;
-        </a>
-      </div>
+    <EditorialChrome
+      activePage="admin"
+      breadcrumb={[
+        { label: 'תשעת החלונות', href: '/' },
+        { label: 'ניהול' },
+        { label: currentChallenge?.name || 'מחזור ז׳' },
+      ]}
+    >
+      {/* Hero */}
+      <section className="ed-ad-hero">
+        <div className="ed-container">
+          <div className="ed-kicker ed-reveal">ניהול · מבט על הבריכה</div>
+          <h1 className="ed-h-display ed-reveal ed-reveal-d1 ed-serif">
+            {groupsData.length}{' '}
+            {groupsData.length === 1 ? 'קבוצה' : 'קבוצות'}.
+            <br />
+            <em className="ed-em">רואים את הכל.</em>
+          </h1>
 
-      {/* Challenge selector */}
-      <div className="flex gap-3 mb-6">
-        {challenges.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => {
-              setSelectedChallenge(c.id)
-              setSelectedGroup(null)
-            }}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-              selectedChallenge === c.id
-                ? 'bg-gradient-to-br from-teal-500 to-cyan-600 text-white shadow-sm'
-                : 'bg-white border border-gray-200 text-gray-700 hover:border-teal-300'
-            }`}
-          >
-            {c.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Stats bar */}
-      {groupsData.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white rounded-xl p-4 border border-gray-200">
-            <p className="text-2xl font-bold text-gray-900">
-              {groupsData.length}
-            </p>
-            <p className="text-xs text-gray-500">קבוצות</p>
-          </div>
-          <div className="bg-white rounded-xl p-4 border border-gray-200">
-            <p className="text-2xl font-bold text-gray-900">
-              {groupsData.reduce((s, g) => s + g.members.length, 0)}
-            </p>
-            <p className="text-xs text-gray-500">משתתפים</p>
-          </div>
-          <div className="bg-white rounded-xl p-4 border border-gray-200">
-            <p className="text-2xl font-bold text-gray-900">
-              {allNotes.length}
-            </p>
-            <p className="text-xs text-gray-500">נקודות</p>
-          </div>
-          <div className="bg-white rounded-xl p-4 border border-gray-200">
-            <p className="text-lg font-bold text-cyan-600">
-              {allNotes.filter((n) => n.depth === 'floating').length}
-            </p>
-            <p className="text-xs text-gray-500">~ צף</p>
-            <p className="text-lg font-bold text-indigo-600 mt-1">
-              {allNotes.filter((n) => n.depth === 'deep').length}
-            </p>
-            <p className="text-xs text-gray-500">// צולל</p>
-          </div>
-          <div className="bg-white rounded-xl p-4 border border-gray-200">
-            <button
-              onClick={handleExportAll}
-              className="text-sm text-teal-600 font-medium hover:text-teal-700 cursor-pointer"
+          {/* Challenge selector */}
+          {challenges.length > 1 && (
+            <div
+              style={{
+                display: 'flex',
+                gap: 12,
+                marginBottom: 32,
+                flexWrap: 'wrap',
+              }}
+              className="ed-reveal"
             >
-              ייצוא כל הקבוצות
-            </button>
-            <p className="text-xs text-gray-500 mt-1">הורדת קבצי טקסט</p>
-          </div>
-        </div>
-      )}
-
-      {/* View mode toggle */}
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => setViewMode('group')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all ${
-            viewMode === 'group'
-              ? 'bg-teal-600 text-white'
-              : 'bg-white border border-gray-200 text-gray-600 hover:border-teal-300'
-          }`}
-        >
-          לפי קבוצה
-        </button>
-        <button
-          onClick={() => setViewMode('cumulative')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all ${
-            viewMode === 'cumulative'
-              ? 'bg-teal-600 text-white'
-              : 'bg-white border border-gray-200 text-gray-600 hover:border-teal-300'
-          }`}
-        >
-          מצטבר — כל הקבוצות
-        </button>
-      </div>
-
-      {viewMode === 'group' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
-          {/* Groups sidebar */}
-          <div className="space-y-2">
-            <h2 className="text-sm font-bold text-gray-700 mb-3">קבוצות</h2>
-            {groupsData.length === 0 ? (
-              <p className="text-sm text-gray-400">אין קבוצות עדיין</p>
-            ) : (
-              groupsData.map((gd) => {
-                const filledWindows = new Set(
-                  gd.notes.map((n) => n.window_number),
-                ).size
-                return (
-                  <button
-                    key={gd.group.id}
-                    onClick={() => setSelectedGroup(gd.group.id)}
-                    className={`w-full text-right p-3 rounded-xl text-sm transition-all cursor-pointer ${
-                      selectedGroup === gd.group.id
-                        ? 'bg-teal-50 border border-teal-200 text-gray-900'
-                        : 'bg-white border border-gray-200 text-gray-700 hover:border-teal-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400">
-                        {gd.notes.length} נקודות
-                      </span>
-                      <span className="font-semibold">{gd.group.name}</span>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {gd.members.map((m) => m.name).join(', ')}
-                    </p>
-                    {/* Window progress bar */}
-                    <div className="flex gap-0.5 mt-2">
-                      {Array.from({ length: 9 }, (_, i) => i + 1).map(
-                        (wNum) => {
-                          const hasNotes = gd.notes.some(
-                            (n) => n.window_number === wNum,
-                          )
-                          return (
-                            <div
-                              key={wNum}
-                              className={`flex-1 h-1.5 rounded-full ${
-                                hasNotes ? 'bg-teal-400' : 'bg-gray-200'
-                              }`}
-                            />
-                          )
-                        },
-                      )}
-                    </div>
-                    <p className="text-[10px] text-gray-400 mt-1">
-                      {filledWindows}/9 חלונות
-                    </p>
-                  </button>
-                )
-              })
-            )}
-          </div>
-
-          {/* Group detail */}
-          {activeGroupData ? (
-            <GroupNotesView
-              groupData={activeGroupData}
-              filterDepth={filterDepth}
-              setFilterDepth={setFilterDepth}
-              onExport={() => handleExport(activeGroupData)}
-            />
-          ) : (
-            <div className="flex items-center justify-center text-gray-400 text-sm py-20">
-              בחרו קבוצה מהרשימה
+              {challenges.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedChallenge(c.id)}
+                  className="ed-pill"
+                  style={
+                    selectedChallenge === c.id
+                      ? { background: 'var(--ink)', color: 'var(--paper)' }
+                      : undefined
+                  }
+                >
+                  {c.name}
+                </button>
+              ))}
             </div>
           )}
-        </div>
-      ) : (
-        /* Cumulative view */
-        <CumulativeView groupsData={groupsData} />
-      )}
-    </main>
-  )
-}
 
-function GroupNotesView({
-  groupData,
-  filterDepth,
-  setFilterDepth,
-  onExport,
-}: {
-  groupData: GroupData
-  filterDepth: Depth | 'all'
-  setFilterDepth: (v: Depth | 'all') => void
-  onExport: () => void
-}) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-gray-900">
-          {groupData.group.name}
-        </h2>
-        <div className="flex gap-2 items-center">
-          <select
-            value={filterDepth}
-            onChange={(e) => setFilterDepth(e.target.value as Depth | 'all')}
-            className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-white"
-          >
-            <option value="all">כל העומקים</option>
-            <option value="floating">~ צף</option>
-            <option value="deep">// צולל</option>
-          </select>
-
-          <button
-            onClick={onExport}
-            className="px-4 py-1.5 bg-gradient-to-br from-teal-500 to-cyan-600 text-white text-sm rounded-lg hover:brightness-110 cursor-pointer"
-          >
-            ייצוא
-          </button>
+          <div className="ed-live-stats ed-reveal ed-reveal-d2">
+            <div>
+              <div className="ed-num">{allNotes.length}</div>
+              <div className="ed-lbl">נקודות כולל</div>
+            </div>
+            <div>
+              <div className="ed-num">{totalFloating}</div>
+              <div className="ed-lbl">צף</div>
+            </div>
+            <div>
+              <div className="ed-num">{totalDeep}</div>
+              <div className="ed-lbl">צולל</div>
+            </div>
+            <div>
+              <div className="ed-num">
+                {activeGroups}
+                {activeGroups > 0 && <span className="ed-live-dot"></span>}
+              </div>
+              <div className="ed-lbl">פעילות עכשיו</div>
+            </div>
+            <div>
+              <div className="ed-num" style={{ fontSize: 32 }}>
+                {latestNote
+                  ? new Date(latestNote.created_at).toLocaleTimeString('he-IL', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : '—'}
+              </div>
+              <div className="ed-lbl">נקודה אחרונה</div>
+            </div>
+          </div>
         </div>
+      </section>
+
+      {/* View switcher */}
+      <div className="ed-switcher">
+        <button
+          className={view === 'pools' ? 'on' : ''}
+          onClick={() => setView('pools')}
+        >
+          תצוגת בריכות
+        </button>
+        <button
+          className={view === 'heatmap' ? 'on' : ''}
+          onClick={() => setView('heatmap')}
+        >
+          מפת חום
+        </button>
+        <button
+          className={view === 'feed' ? 'on' : ''}
+          onClick={() => setView('feed')}
+        >
+          פיד חי
+        </button>
+        <button
+          style={{ marginRight: 'auto' }}
+          onClick={handleExportAll}
+        >
+          ייצוא הכל
+        </button>
       </div>
 
-      <div className="space-y-4">
-        {WINDOWS.map((win) => {
-          const windowNotes = groupData.notes.filter(
-            (n) =>
-              n.window_number === win.number &&
-              (filterDepth === 'all' || n.depth === filterDepth),
-          )
-
-          return (
-            <div
-              key={win.number}
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden"
-            >
-              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-teal-500 to-cyan-600 text-white text-xs font-bold">
-                    {win.number}
-                  </span>
-                  <div>
-                    <span className="text-sm font-semibold text-gray-800">
-                      {win.title}
-                    </span>
-                    <span className="text-xs text-gray-500 mr-2">
-                      {' '}
-                      — {win.subtitle}
-                    </span>
+      {/* Pools view */}
+      {view === 'pools' && (
+        <section className="ed-pools-view">
+          <div className="ed-pools-grid">
+            {groupsData.map((gd) => {
+              const floating = gd.notes.filter((n) => n.depth === 'floating')
+              const deep = gd.notes.filter((n) => n.depth === 'deep')
+              const isLive =
+                gd.notes[0] &&
+                Date.now() - new Date(gd.notes[0].created_at).getTime() <
+                  15 * 60 * 1000
+              return (
+                <div
+                  key={gd.group.id}
+                  className="ed-pool-card ed-reveal"
+                  onClick={() =>
+                    window.open(`/workshop/${gd.group.id}`, '_blank')
+                  }
+                >
+                  <div className="ed-pool-head">
+                    <div>
+                      <h3>{gd.group.name}</h3>
+                      <div className="ed-g-sub">
+                        {gd.members.map((m) => m.name).join(' · ') ||
+                          `${gd.members.length} משתתפים`}
+                      </div>
+                    </div>
+                    <div className={`ed-status ${isLive ? 'live' : ''}`}>
+                      <span className="ed-status-dot"></span>
+                      {isLive ? 'פעילה' : 'לא פעילה'}
+                    </div>
+                  </div>
+                  <div className="ed-tdpool">
+                    {floating.slice(0, 40).map((_, i) => {
+                      const sz = 8 + Math.random() * 5
+                      return (
+                        <div
+                          key={`f-${i}`}
+                          className="ed-td-dot float"
+                          style={{
+                            left: r(8, 92) + '%',
+                            top: r(8, 45) + '%',
+                            width: sz,
+                            height: sz,
+                          }}
+                        />
+                      )
+                    })}
+                    {deep.slice(0, 40).map((_, i) => {
+                      const sz = 10 + Math.random() * 8
+                      return (
+                        <div
+                          key={`d-${i}`}
+                          className="ed-td-dot deep"
+                          style={{
+                            left: r(8, 92) + '%',
+                            top: r(55, 92) + '%',
+                            width: sz,
+                            height: sz,
+                          }}
+                        />
+                      )
+                    })}
+                  </div>
+                  <div className="ed-pool-stats">
+                    <div>
+                      <b>{gd.notes.length}</b>
+                      <span>סה&quot;כ</span>
+                    </div>
+                    <div>
+                      <b>{floating.length}</b>
+                      <span>צף</span>
+                    </div>
+                    <div>
+                      <b>{deep.length}</b>
+                      <span>צולל</span>
+                    </div>
                   </div>
                 </div>
-                <span className="text-xs text-gray-400">
-                  {windowNotes.length} נקודות
-                </span>
-              </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
-              {windowNotes.length > 0 && (
-                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {windowNotes.map((note) => {
-                    const config = DEPTH_CONFIG[note.depth]
+      {/* Heatmap view */}
+      {view === 'heatmap' && (
+        <section className="ed-heatmap-view">
+          <div className="ed-heatmap">
+            <div className="ed-heatmap-header">
+              נקודות לפי קבוצה × חלון · צבע = צפיפות
+            </div>
+            <div className="ed-heat-grid">
+              <div className="ed-hh"></div>
+              {Array.from({ length: 9 }, (_, i) => (
+                <div key={i} className="ed-hh">
+                  חלון {i + 1}
+                </div>
+              ))}
+              {groupsData.map((gd, ri) => (
+                <div
+                  key={gd.group.id}
+                  style={{ display: 'contents' }}
+                >
+                  <div className="ed-hh row">{gd.group.name}</div>
+                  {heatData[ri].map((v, ci) => {
+                    const dark = v >= 5
                     return (
                       <div
-                        key={note.id}
-                        className={`dot-card rounded-xl p-3 border ${config.bgClass} ${config.borderClass}`}
+                        key={ci}
+                        className="ed-heat-cell"
+                        style={{
+                          background: heatColor(v),
+                          color: dark ? '#fff' : '#5C6B73',
+                        }}
                       >
-                        <div className="flex items-center gap-2 mb-1">
-                          <span
-                            className={`w-2 h-2 rounded-full ${config.dotClass}`}
-                          />
-                          <span
-                            className={`text-[10px] font-bold ${config.textClass} opacity-70`}
-                          >
-                            {config.label}
-                          </span>
-                        </div>
-                        <p className="text-sm leading-relaxed">
-                          {note.content}
-                        </p>
-                        {note.author_name && (
-                          <p className="text-[10px] opacity-50 mt-2">
-                            — {note.author_name}
-                          </p>
-                        )}
+                        {v}
                       </div>
                     )
                   })}
                 </div>
-              )}
+              ))}
             </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function CumulativeView({ groupsData }: { groupsData: GroupData[] }) {
-  const allNotes = groupsData.flatMap((gd) =>
-    gd.notes.map((n) => ({ ...n, groupName: gd.group.name })),
-  )
-
-  return (
-    <div>
-      <h2 className="text-lg font-bold text-gray-900 mb-4">
-        תצוגה מצטברת — כל הקבוצות
-      </h2>
-      <div className="space-y-4">
-        {WINDOWS.map((win) => {
-          const windowNotes = allNotes.filter(
-            (n) => n.window_number === win.number,
-          )
-
-          return (
             <div
-              key={win.number}
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden"
+              style={{
+                marginTop: 24,
+                display: 'flex',
+                gap: 20,
+                alignItems: 'center',
+                fontSize: 11,
+                color: 'var(--muted-ink)',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+              }}
             >
-              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-teal-500 to-cyan-600 text-white text-xs font-bold">
-                    {win.number}
-                  </span>
+              <span>פחות</span>
+              <div style={{ display: 'flex', gap: 2 }}>
+                {['#EDF3F7', '#D6E4EC', '#7BAAC2', '#2D6F94', '#0F4A78', '#0A3556'].map(
+                  (c) => (
+                    <div
+                      key={c}
+                      style={{ width: 20, height: 14, background: c }}
+                    />
+                  ),
+                )}
+              </div>
+              <span>יותר</span>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Feed view */}
+      {view === 'feed' && (
+        <section className="ed-feed-view">
+          <div className="ed-feed">
+            {feedItems.length === 0 && (
+              <p
+                style={{
+                  textAlign: 'center',
+                  color: 'var(--muted-ink)',
+                  padding: '60px 0',
+                }}
+              >
+                אין עדיין נקודות בפיד
+              </p>
+            )}
+            {feedItems.slice(0, 50).map(({ note, groupName }) => {
+              const t = new Date(note.created_at).toLocaleTimeString('he-IL', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+              return (
+                <div key={note.id} className="ed-feed-item">
+                  <div className="ed-time">{t}</div>
                   <div>
-                    <span className="text-sm font-semibold text-gray-800">
-                      {win.title}
-                    </span>
-                    <span className="text-xs text-gray-500 mr-2">
-                      {' '}
-                      — {win.subtitle}
-                    </span>
+                    <h5>&ldquo;{note.content}&rdquo;</h5>
+                    <p>
+                      {note.author_name ? `${note.author_name} · ` : ''}
+                      {groupName}
+                    </p>
+                    <div className="ed-tags">
+                      <span className="ed-tag">חלון {note.window_number}</span>
+                      <span
+                        className={`ed-tag ${note.depth === 'floating' ? 'float' : 'sink'}`}
+                      >
+                        {note.depth === 'floating' ? 'צף' : 'צולל'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-400">
-                    {windowNotes.length} נקודות מ-{
-                      new Set(windowNotes.map((n) => n.groupName)).size
-                    }{' '}
-                    קבוצות
-                  </span>
-                </div>
-              </div>
-
-              {windowNotes.length > 0 && (
-                <div className="p-4">
-                  {/* Floating */}
-                  {windowNotes.filter((n) => n.depth === 'floating').length >
-                    0 && (
-                    <div className="mb-3">
-                      <p className="text-xs font-bold text-cyan-700 mb-2">
-                        ~ צף
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                        {windowNotes
-                          .filter((n) => n.depth === 'floating')
-                          .map((note) => (
-                            <div
-                              key={note.id}
-                              className="rounded-lg p-3 bg-cyan-50 border border-cyan-200"
-                            >
-                              <p className="text-sm">{note.content}</p>
-                              <p className="text-[10px] opacity-50 mt-1">
-                                {note.groupName}
-                                {note.author_name && ` — ${note.author_name}`}
-                              </p>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Deep */}
-                  {windowNotes.filter((n) => n.depth === 'deep').length >
-                    0 && (
-                    <div>
-                      <p className="text-xs font-bold text-indigo-700 mb-2">
-                        // צולל
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                        {windowNotes
-                          .filter((n) => n.depth === 'deep')
-                          .map((note) => (
-                            <div
-                              key={note.id}
-                              className="rounded-lg p-3 bg-indigo-50 border border-indigo-200"
-                            >
-                              <p className="text-sm">{note.content}</p>
-                              <p className="text-[10px] opacity-50 mt-1">
-                                {note.groupName}
-                                {note.author_name && ` — ${note.author_name}`}
-                              </p>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
-    </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+    </EditorialChrome>
   )
 }

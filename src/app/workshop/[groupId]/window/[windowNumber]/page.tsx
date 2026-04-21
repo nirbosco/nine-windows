@@ -4,13 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { WINDOWS } from '@/lib/windows-data'
-import { Note, Depth, DEPTH_CONFIG, GroupMember } from '@/lib/types'
-
-const THEME_MAP: Record<string, string> = {
-  present: 'theme-present',
-  past: 'theme-past',
-  future: 'theme-future',
-}
+import { Note, Depth, GroupMember, Challenge, Group } from '@/lib/types'
+import { EditorialChrome } from '@/components/EditorialChrome'
 
 export default function WindowDetail() {
   const { groupId, windowNumber } = useParams<{
@@ -23,6 +18,8 @@ export default function WindowDetail() {
 
   const [notes, setNotes] = useState<Note[]>([])
   const [members, setMembers] = useState<GroupMember[]>([])
+  const [group, setGroup] = useState<Group | null>(null)
+  const [challenge, setChallenge] = useState<Challenge | null>(null)
   const [loading, setLoading] = useState(true)
 
   const [depth, setDepth] = useState<Depth>('floating')
@@ -32,8 +29,6 @@ export default function WindowDetail() {
   const [justAdded, setJustAdded] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
-
-  const themeClass = THEME_MAP[win.timeFrame]
 
   const loadNotes = useCallback(async () => {
     const { data } = await supabase
@@ -55,6 +50,21 @@ export default function WindowDetail() {
         .eq('group_id', groupId)
       if (m) setMembers(m as GroupMember[])
 
+      const { data: g } = await supabase
+        .from('groups')
+        .select('*')
+        .eq('id', groupId)
+        .single()
+      if (g) {
+        setGroup(g as Group)
+        const { data: c } = await supabase
+          .from('challenges')
+          .select('*')
+          .eq('id', (g as Group).challenge_id)
+          .single()
+        if (c) setChallenge(c as Challenge)
+      }
+
       const saved = localStorage.getItem(`nw-author-${groupId}`)
       if (saved) setAuthorName(saved)
 
@@ -66,11 +76,9 @@ export default function WindowDetail() {
   async function handleSubmit() {
     if (!noteContent.trim()) return
     setSubmitting(true)
-
     if (authorName) {
       localStorage.setItem(`nw-author-${groupId}`, authorName)
     }
-
     const { data } = await supabase
       .from('notes')
       .insert({
@@ -82,14 +90,12 @@ export default function WindowDetail() {
       })
       .select()
       .single()
-
     if (data) {
       setNotes((prev) => [data as Note, ...prev])
       setNoteContent('')
       setJustAdded(data.id)
       setTimeout(() => setJustAdded(null), 600)
     }
-
     setSubmitting(false)
   }
 
@@ -102,7 +108,7 @@ export default function WindowDetail() {
     const newDepth: Depth = note.depth === 'floating' ? 'deep' : 'floating'
     await supabase.from('notes').update({ depth: newDepth }).eq('id', note.id)
     setNotes((prev) =>
-      prev.map((n) => (n.id === note.id ? { ...n, depth: newDepth } : n))
+      prev.map((n) => (n.id === note.id ? { ...n, depth: newDepth } : n)),
     )
   }
 
@@ -114,8 +120,8 @@ export default function WindowDetail() {
       .eq('id', noteId)
     setNotes((prev) =>
       prev.map((n) =>
-        n.id === noteId ? { ...n, content: editContent.trim() } : n
-      )
+        n.id === noteId ? { ...n, content: editContent.trim() } : n,
+      ),
     )
     setEditingId(null)
     setEditContent('')
@@ -123,517 +129,614 @@ export default function WindowDetail() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full" />
+      <main className="ed-root min-h-screen flex items-center justify-center">
+        <div className="text-sm ed-mono">טוען...</div>
       </main>
     )
   }
 
   const floatingNotes = notes.filter((n) => n.depth === 'floating')
   const deepNotes = notes.filter((n) => n.depth === 'deep')
-  const depthPercent = Math.round((winNum / 9) * 100)
+
+  const r = (a: number, b: number) => a + Math.random() * (b - a)
 
   return (
-    <main className={`min-h-screen page-enter ${themeClass}`}>
-      {/* Top navigation bar */}
-      <div className="sticky top-0 z-30 backdrop-blur-md bg-white/70 border-b border-black/5">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <button
-            onClick={() => router.push(`/workshop/${groupId}`)}
-            className="text-gray-500 hover:text-gray-700 text-sm flex items-center gap-1 cursor-pointer"
+    <EditorialChrome
+      activePage="window"
+      breadcrumb={[
+        { label: 'תשעת החלונות', href: '/' },
+        {
+          label: challenge?.name || 'אתגר',
+          href: challenge ? `/challenge/${challenge.id}` : undefined,
+        },
+        {
+          label: group?.name || 'קבוצה',
+          href: `/workshop/${groupId}`,
+        },
+        { label: `חלון ${winNum}` },
+      ]}
+    >
+      {/* Window hero */}
+      <section className="ed-w-hero">
+        <div className="ed-container">
+          <div className="ed-kicker ed-reveal">
+            חלון {winNum} ·{' '}
+            {win.systemLevel === 'super'
+              ? 'מערכת-על'
+              : win.systemLevel === 'system'
+                ? 'מערכת'
+                : 'תת-מערכת'}
+            {' · '}
+            {win.timeFrame === 'past'
+              ? 'עבר'
+              : win.timeFrame === 'present'
+                ? 'הווה'
+                : 'עתיד'}
+          </div>
+          <div className="ed-w-num-big ed-reveal">
+            {String(winNum).padStart(2, '0')}
+          </div>
+          <h1 className="ed-h-display ed-reveal ed-reveal-d1 ed-serif">
+            {win.title.replace('?', '')}
+            <em className="ed-em">?</em>
+          </h1>
+          <p
+            className="ed-body-lg ed-reveal ed-reveal-d2"
+            style={{ maxWidth: 640, color: 'var(--muted-ink)' }}
           >
-            <span>&rarr;</span>
-            <span>חזרה לבריכה</span>
-          </button>
-
-          <div className="flex items-center gap-3">
-            <span
-              className="text-sm font-medium"
-              style={{ color: 'var(--theme-primary)' }}
-            >
-              שלב {winNum} מתוך 9
-            </span>
-            <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className="h-full depth-fill rounded-full"
-                style={{
-                  width: `${depthPercent}%`,
-                  background: 'var(--theme-gradient)',
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            {winNum > 1 && (
-              <button
-                onClick={() =>
-                  router.push(`/workshop/${groupId}/window/${winNum - 1}`)
-                }
-                className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-gray-600"
-              >
-                הקודם &rarr;
-              </button>
-            )}
-            {winNum < 9 && (
-              <button
-                onClick={() =>
-                  router.push(`/workshop/${groupId}/window/${winNum + 1}`)
-                }
-                className="px-3 py-1.5 text-sm btn-theme rounded-lg cursor-pointer"
-              >
-                &larr; הבא
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Window header */}
-      <div className="window-header relative overflow-hidden">
-        <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
-          <div className="flex items-center gap-4 mb-3">
-            <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm text-white font-bold text-2xl border border-white/20">
-              {winNum}
-            </span>
-            <div>
-              <h1 className="text-2xl font-bold">{win.title}</h1>
-              <p className="text-white/80 font-medium">{win.subtitle}</p>
-            </div>
-          </div>
-          <p className="text-white/70 leading-relaxed max-w-2xl text-sm mt-2">
             {win.description}
           </p>
-        </div>
-        <svg
-          className="absolute bottom-0 left-0 right-0 w-full"
-          viewBox="0 0 1200 40"
-          preserveAspectRatio="none"
-          style={{ height: '30px' }}
-        >
-          <path
-            d="M0,25 C200,40 400,10 600,25 C800,40 1000,10 1200,25 L1200,40 L0,40 Z"
-            fill="var(--background)"
-          />
-        </svg>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
-          {/* RTL: first column = right side = sidebar */}
-          <div className="space-y-5">
-            {/* Guiding questions card */}
-            <div
-              className="rounded-2xl border overflow-hidden"
-              style={{
-                borderColor: 'var(--theme-accent)',
-                background: 'var(--theme-bg)',
-              }}
-            >
-              <div
-                className="px-5 py-4"
-                style={{ borderBottom: '1px solid var(--theme-accent)' }}
-              >
-                <h3
-                  className="text-sm font-bold"
-                  style={{ color: 'var(--theme-primary)' }}
-                >
-                  שאלות מכוונות
-                </h3>
-              </div>
-              <ul className="px-5 py-4 space-y-3">
-                {win.questions.map((q, i) => (
-                  <li
-                    key={i}
-                    className="flex gap-2 text-sm"
-                    style={{ color: 'var(--theme-text)' }}
-                  >
-                    <span
-                      style={{ color: 'var(--theme-accent)' }}
-                      className="shrink-0 mt-0.5"
-                    >
-                      &#x25CF;
-                    </span>
-                    <span className="leading-relaxed opacity-85">{q}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Add note form */}
-            <div
-              className="rounded-2xl p-5 border"
-              style={{
-                background: 'var(--theme-bg)',
-                borderColor: 'var(--theme-accent)',
-              }}
-            >
-              <h3
-                className="text-sm font-bold mb-4"
-                style={{ color: 'var(--theme-primary)' }}
-              >
-                הוסיפו נקודה לבריכה
-              </h3>
-
-              {/* Depth selector */}
-              <div className="flex gap-2 mb-4">
-                {(['floating', 'deep'] as Depth[]).map((d) => {
-                  const config = DEPTH_CONFIG[d]
-                  const isActive = depth === d
-                  return (
-                    <button
-                      key={d}
-                      onClick={() => setDepth(d)}
-                      className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer border-2 ${
-                        isActive
-                          ? `${config.bgClass} ${config.borderClass} ${config.textClass}`
-                          : 'bg-white border-gray-200 text-gray-400'
-                      }`}
-                    >
-                      <span className="text-lg ml-1">{config.icon}</span>
-                      {config.label}
-                      <span className="block text-[10px] font-normal opacity-70 mt-0.5">
-                        {d === 'floating'
-                          ? 'דברים שאנחנו יודעים'
-                          : 'שאלות לצלול אליהן'}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-
-              <textarea
-                value={noteContent}
-                onChange={(e) => setNoteContent(e.target.value)}
-                placeholder="מה עולה לכם? כתבו כאן..."
-                rows={3}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[var(--theme-primary)] resize-none bg-white mb-3"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                    handleSubmit()
-                  }
-                }}
-              />
-
-              <div className="flex items-center gap-3">
-                {members.length > 0 ? (
-                  <select
-                    value={authorName}
-                    onChange={(e) => setAuthorName(e.target.value)}
-                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 bg-white"
-                  >
-                    <option value="">בחרו שם</option>
-                    {members.map((m) => (
-                      <option key={m.id} value={m.name}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    value={authorName}
-                    onChange={(e) => setAuthorName(e.target.value)}
-                    placeholder="השם שלך"
-                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 bg-white"
-                  />
-                )}
-
-                <button
-                  onClick={handleSubmit}
-                  disabled={!noteContent.trim() || submitting}
-                  className="px-6 py-2 btn-theme font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ms-auto text-sm"
-                >
-                  {submitting ? 'מוסיף...' : 'הוסיפו'}
-                </button>
-              </div>
-
-              <p className="text-[10px] text-gray-400 mt-2">
-                Ctrl+Enter לשליחה מהירה
-              </p>
-            </div>
-          </div>
-
-          {/* RTL: second column = left side = pool area */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2
-                className="text-lg font-bold"
-                style={{ color: 'var(--theme-text)' }}
-              >
-                נקודות בבריכה ({notes.length})
-              </h2>
-              <div className="flex gap-3 text-xs">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-cyan-400" />
-                  צף ({floatingNotes.length})
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-indigo-500" />
-                  צולל ({deepNotes.length})
-                </span>
-              </div>
-            </div>
-
-            {/* The pool — always visible, notes float inside */}
-            <div>
-              {/* SHALLOW LAYER (floating notes) */}
-              <div className="pool-layer pool-layer-shallow">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xl">~</span>
-                  <h3 className="text-sm font-bold text-cyan-900">
-                    צף — דברים שאנחנו יודעים
-                  </h3>
-                  <span className="text-xs text-cyan-700/70 mr-auto">
-                    {floatingNotes.length}
-                  </span>
-                </div>
-                {floatingNotes.length === 0 ? (
-                  <p className="text-center text-cyan-800/50 text-sm py-6 italic">
-                    עדיין אין כלום שצף כאן
-                  </p>
-                ) : (
-                  <ul className="space-y-2">
-                    {floatingNotes.map((note) => (
-                      <NoteBullet
-                        key={note.id}
-                        note={note}
-                        isNew={note.id === justAdded}
-                        editingId={editingId}
-                        editContent={editContent}
-                        onDelete={handleDelete}
-                        onToggleDepth={handleToggleDepth}
-                        onEditStart={(n) => {
-                          setEditingId(n.id)
-                          setEditContent(n.content)
-                        }}
-                        onEditSave={handleEditSave}
-                        onEditCancel={() => {
-                          setEditingId(null)
-                          setEditContent('')
-                        }}
-                        onEditChange={setEditContent}
-                      />
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              {/* WATER SURFACE DIVIDER */}
-              <div className="depth-divider">
-                <span className="text-xs text-cyan-900/60 font-bold tracking-wider">
-                  ~  ~  עומק  ~  ~
-                </span>
-              </div>
-
-              {/* DEEP LAYER (deep notes) */}
-              <div className="pool-layer pool-layer-deep">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xl font-bold text-white">//</span>
-                  <h3 className="text-sm font-bold text-white">
-                    צולל — שאלות לצלול אליהן
-                  </h3>
-                  <span className="text-xs text-white/70 mr-auto">
-                    {deepNotes.length}
-                  </span>
-                </div>
-                {deepNotes.length === 0 ? (
-                  <p className="text-center text-white/60 text-sm py-6 italic">
-                    עדיין לא צללנו לכאן
-                  </p>
-                ) : (
-                  <ul className="space-y-2">
-                    {deepNotes.map((note) => (
-                      <NoteBullet
-                        key={note.id}
-                        note={note}
-                        isNew={note.id === justAdded}
-                        editingId={editingId}
-                        editContent={editContent}
-                        onDelete={handleDelete}
-                        onToggleDepth={handleToggleDepth}
-                        onEditStart={(n) => {
-                          setEditingId(n.id)
-                          setEditContent(n.content)
-                        }}
-                        onEditSave={handleEditSave}
-                        onEditCancel={() => {
-                          setEditingId(null)
-                          setEditContent('')
-                        }}
-                        onEditChange={setEditContent}
-                      />
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
+          <div className="ed-w-meta ed-reveal ed-reveal-d3">
+            <span>
+              <b>{group?.name}</b>
+            </span>
+            <span>
+              <b>{floatingNotes.length}</b> נקודות צפות
+            </span>
+            <span>
+              <b>{deepNotes.length}</b> נקודות צוללות
+            </span>
+            <span>
+              <b>{notes.length}</b> סה&quot;כ
+            </span>
           </div>
         </div>
+      </section>
+
+      {/* Pool visualization */}
+      <div className="ed-window-hero-pool">
+        <div
+          className="ed-caustics-after"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            top: '30%',
+            bottom: 0,
+            pointerEvents: 'none',
+          }}
+        ></div>
+        <div className="ed-waterline"></div>
+        <div className="ed-label-top">~ פני השטח · צף</div>
+        <div className="ed-label-bottom">// תחתית · צולל</div>
+        {floatingNotes.slice(0, 10).map((_, i) => {
+          const sz = 10 + Math.random() * 10
+          return (
+            <div
+              key={`f-${i}`}
+              className="ed-ps float"
+              style={{
+                position: 'absolute',
+                left: `${6 + i * 9 + Math.random() * 3}%`,
+                top: `${8 + Math.random() * 14}%`,
+                width: sz,
+                height: sz,
+                animationDelay: `${Math.random() * 2}s`,
+                borderRadius: '50%',
+              }}
+            />
+          )
+        })}
+        {deepNotes.slice(0, 10).map((_, i) => {
+          const sz = 12 + Math.random() * 14
+          return (
+            <div
+              key={`d-${i}`}
+              className="ed-ps deep"
+              style={{
+                position: 'absolute',
+                left: `${6 + i * 9 + Math.random() * 3}%`,
+                top: `${58 + Math.random() * 24}%`,
+                width: sz,
+                height: sz,
+                borderRadius: '50%',
+              }}
+            />
+          )
+        })}
+        <div className="ed-floor"></div>
       </div>
 
-      {/* Bottom navigation */}
-      <div className="max-w-6xl mx-auto px-4 pb-8">
-        <div className="flex items-center justify-between border-t border-gray-200 pt-6">
-          {winNum > 1 ? (
-            <button
-              onClick={() =>
-                router.push(`/workshop/${groupId}/window/${winNum - 1}`)
-              }
-              className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-gray-600"
-            >
-              הקודם &rarr;
-            </button>
-          ) : (
-            <div />
-          )}
-
-          <button
-            onClick={() => router.push(`/workshop/${groupId}`)}
-            className="px-4 py-2 text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+      {/* Guiding questions */}
+      <section
+        className="ed-section"
+        style={{ padding: '80px 48px', background: 'var(--paper-2)' }}
+      >
+        <div className="ed-container">
+          <div className="ed-section-head ed-reveal" style={{ marginBottom: 40 }}>
+            <div className="ed-label" style={{ color: 'var(--water-700)' }}>
+              שאלות מכוונות
+            </div>
+          </div>
+          <ul
+            style={{
+              maxWidth: 900,
+              margin: '0 auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 20,
+              listStyle: 'none',
+              padding: 0,
+            }}
           >
-            חזרה לבריכה
-          </button>
+            {win.questions.map((q, i) => (
+              <li
+                key={i}
+                className="ed-reveal"
+                style={{
+                  display: 'flex',
+                  gap: 16,
+                  fontFamily: "'Frank Ruhl Libre', serif",
+                  fontSize: 22,
+                  lineHeight: 1.45,
+                  letterSpacing: '-0.01em',
+                  fontWeight: 500,
+                  color: 'var(--ink)',
+                }}
+              >
+                <span style={{ color: 'var(--water-500)', minWidth: 32 }}>
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span>{q}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
 
-          {winNum < 9 ? (
-            <button
-              onClick={() =>
-                router.push(`/workshop/${groupId}/window/${winNum + 1}`)
-              }
-              className="px-4 py-2 text-sm btn-theme rounded-lg cursor-pointer"
+      {/* FLOAT BAND */}
+      <section className="ed-band">
+        <div className="ed-container">
+          <div className="ed-band-head ed-reveal">
+            <div className="ed-label" style={{ color: 'var(--water-700)' }}>
+              01 · צף
+            </div>
+            <h2 className="ed-h-xl ed-serif">
+              דברים שאנחנו <em className="ed-em">יודעים.</em>
+            </h2>
+            <p
+              className="ed-body-lg"
+              style={{ color: 'var(--muted-ink)', maxWidth: 620 }}
             >
-              &larr; הבא
-            </button>
+              מה שעל פני השטח. תצפיות, עובדות, מה שכבר קלטתם. אין צורך להצדיק
+              — רק להגיד.
+            </p>
+          </div>
+
+          {/* Add form for floating */}
+          {depth === 'floating' && (
+            <AddForm
+              depth={depth}
+              setDepth={setDepth}
+              noteContent={noteContent}
+              setNoteContent={setNoteContent}
+              authorName={authorName}
+              setAuthorName={setAuthorName}
+              members={members}
+              onSubmit={handleSubmit}
+              submitting={submitting}
+            />
+          )}
+          {depth !== 'floating' && (
+            <div
+              style={{
+                maxWidth: 900,
+                margin: '0 auto 40px',
+                textAlign: 'center',
+              }}
+            >
+              <button
+                onClick={() => setDepth('floating')}
+                className="ed-btn-line dark"
+              >
+                + הוסיפו נקודה צפה
+              </button>
+            </div>
+          )}
+
+          {floatingNotes.length === 0 ? (
+            <p
+              style={{
+                textAlign: 'center',
+                color: 'var(--muted-ink)',
+                padding: '60px 0',
+                fontStyle: 'italic',
+              }}
+            >
+              עדיין אין כלום שצף בחלון הזה.
+            </p>
           ) : (
-            <button
-              onClick={() => router.push(`/workshop/${groupId}`)}
-              className="px-4 py-2 text-sm bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-lg hover:from-amber-600 hover:to-amber-700 transition-all cursor-pointer"
-            >
-              סיום — חזרה לבריכה
-            </button>
+            <div className="ed-cards">
+              {floatingNotes.map((note) => (
+                <NoteCard
+                  key={note.id}
+                  note={note}
+                  dark={false}
+                  isNew={note.id === justAdded}
+                  editingId={editingId}
+                  editContent={editContent}
+                  setEditContent={setEditContent}
+                  onDelete={handleDelete}
+                  onToggleDepth={handleToggleDepth}
+                  onEditStart={(n) => {
+                    setEditingId(n.id)
+                    setEditContent(n.content)
+                  }}
+                  onEditSave={handleEditSave}
+                  onEditCancel={() => {
+                    setEditingId(null)
+                    setEditContent('')
+                  }}
+                />
+              ))}
+            </div>
           )}
         </div>
-      </div>
-    </main>
+      </section>
+
+      {/* SINK BAND */}
+      <section className="ed-band sink-band ed-caustics-after">
+        <div className="ed-container">
+          <div className="ed-band-head ed-reveal">
+            <div className="ed-label">02 · צולל</div>
+            <h2 className="ed-h-xl ed-serif">
+              שאלות <em className="ed-em">לחקור.</em>
+            </h2>
+            <p
+              className="ed-body-lg"
+              style={{ maxWidth: 620 }}
+            >
+              מה שנרצה לצלול אליו. שאלות שדורשות עצירה, קישורים שטרם ראינו,
+              הודאות שקשה לאמר. זה המקום שלהן.
+            </p>
+          </div>
+
+          {/* Add form for deep */}
+          {depth === 'deep' && (
+            <AddForm
+              depth={depth}
+              setDepth={setDepth}
+              noteContent={noteContent}
+              setNoteContent={setNoteContent}
+              authorName={authorName}
+              setAuthorName={setAuthorName}
+              members={members}
+              onSubmit={handleSubmit}
+              submitting={submitting}
+            />
+          )}
+          {depth !== 'deep' && (
+            <div
+              style={{
+                maxWidth: 900,
+                margin: '0 auto 40px',
+                textAlign: 'center',
+              }}
+            >
+              <button
+                onClick={() => setDepth('deep')}
+                className="ed-btn-line light"
+              >
+                + הוסיפו שאלה לצלילה
+              </button>
+            </div>
+          )}
+
+          {deepNotes.length === 0 ? (
+            <p
+              style={{
+                textAlign: 'center',
+                color: 'rgba(255,255,255,0.5)',
+                padding: '60px 0',
+                fontStyle: 'italic',
+              }}
+            >
+              עדיין לא צללנו לחלון הזה.
+            </p>
+          ) : (
+            <div className="ed-cards">
+              {deepNotes.map((note) => (
+                <NoteCard
+                  key={note.id}
+                  note={note}
+                  dark={true}
+                  isNew={note.id === justAdded}
+                  editingId={editingId}
+                  editContent={editContent}
+                  setEditContent={setEditContent}
+                  onDelete={handleDelete}
+                  onToggleDepth={handleToggleDepth}
+                  onEditStart={(n) => {
+                    setEditingId(n.id)
+                    setEditContent(n.content)
+                  }}
+                  onEditSave={handleEditSave}
+                  onEditCancel={() => {
+                    setEditingId(null)
+                    setEditContent('')
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Win-nav: prev / next */}
+      <section className="ed-win-nav">
+        {winNum > 1 ? (
+          <a
+            onClick={() =>
+              router.push(`/workshop/${groupId}/window/${winNum - 1}`)
+            }
+          >
+            <span className="ed-hint">← חלון {winNum - 1}</span>
+            <span className="ed-name">
+              {WINDOWS.find((w) => w.number === winNum - 1)?.title}
+            </span>
+          </a>
+        ) : (
+          <a onClick={() => router.push(`/workshop/${groupId}`)}>
+            <span className="ed-hint">← חזרה לבריכה</span>
+            <span className="ed-name">{group?.name}</span>
+          </a>
+        )}
+        {winNum < 9 ? (
+          <a
+            className="next"
+            onClick={() =>
+              router.push(`/workshop/${groupId}/window/${winNum + 1}`)
+            }
+          >
+            <span className="ed-hint">חלון {winNum + 1} →</span>
+            <span className="ed-name">
+              {WINDOWS.find((w) => w.number === winNum + 1)?.title}
+            </span>
+          </a>
+        ) : (
+          <a
+            className="next"
+            onClick={() => router.push(`/workshop/${groupId}`)}
+          >
+            <span className="ed-hint">סיימתם →</span>
+            <span className="ed-name">חזרה לבריכה</span>
+          </a>
+        )}
+      </section>
+    </EditorialChrome>
   )
 }
 
-function NoteBullet({
+function AddForm({
+  depth,
+  setDepth,
+  noteContent,
+  setNoteContent,
+  authorName,
+  setAuthorName,
+  members,
+  onSubmit,
+  submitting,
+}: {
+  depth: Depth
+  setDepth: (d: Depth) => void
+  noteContent: string
+  setNoteContent: (v: string) => void
+  authorName: string
+  setAuthorName: (v: string) => void
+  members: GroupMember[]
+  onSubmit: () => void
+  submitting: boolean
+}) {
+  return (
+    <div className="ed-add-form">
+      <h3>
+        {depth === 'floating'
+          ? 'הוסיפו דבר שאתם יודעים'
+          : 'הוסיפו שאלה לצלילה'}
+      </h3>
+      <textarea
+        value={noteContent}
+        onChange={(e) => setNoteContent(e.target.value)}
+        placeholder={
+          depth === 'floating'
+            ? 'מה אתם יודעים? מה עולה?'
+            : 'מה השאלה? מה צריך להבהיר?'
+        }
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) onSubmit()
+        }}
+      />
+      <div className="ed-form-row">
+        {members.length > 0 ? (
+          <select
+            value={authorName}
+            onChange={(e) => setAuthorName(e.target.value)}
+          >
+            <option value="">בחרו שם</option>
+            {members.map((m) => (
+              <option key={m.id} value={m.name}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type="text"
+            value={authorName}
+            onChange={(e) => setAuthorName(e.target.value)}
+            placeholder="השם שלך"
+          />
+        )}
+        <button
+          onClick={() => setDepth(depth === 'floating' ? 'deep' : 'floating')}
+          style={{
+            padding: '10px 14px',
+            fontFamily: "'Heebo', sans-serif",
+            fontSize: 13,
+            background: 'transparent',
+            border: '1px solid currentColor',
+            color: 'inherit',
+            cursor: 'pointer',
+          }}
+        >
+          {depth === 'floating' ? '→ להעביר לצולל' : '→ להעביר לצף'}
+        </button>
+        <button
+          type="submit"
+          onClick={onSubmit}
+          disabled={!noteContent.trim() || submitting}
+        >
+          {submitting ? 'מוסיף...' : 'הוסיפו'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function NoteCard({
   note,
+  dark,
   isNew,
   editingId,
   editContent,
+  setEditContent,
   onDelete,
   onToggleDepth,
   onEditStart,
   onEditSave,
   onEditCancel,
-  onEditChange,
 }: {
   note: Note
+  dark: boolean
   isNew: boolean
   editingId: string | null
   editContent: string
+  setEditContent: (v: string) => void
   onDelete: (id: string) => void
   onToggleDepth: (note: Note) => void
   onEditStart: (note: Note) => void
   onEditSave: (id: string) => void
   onEditCancel: () => void
-  onEditChange: (val: string) => void
 }) {
   const isEditing = editingId === note.id
-  const isDeep = note.depth === 'deep'
-  const bulletColor = isDeep ? 'bg-white' : 'bg-cyan-600'
-  const textColor = isDeep ? 'text-white' : 'text-cyan-950'
-  const authorColor = isDeep ? 'text-white/60' : 'text-cyan-900/60'
-  const hoverBg = isDeep ? 'hover:bg-white/10' : 'hover:bg-white/40'
+  const initial = note.author_name
+    ? note.author_name.charAt(0)
+    : '·'
 
-  if (isEditing) {
-    return (
-      <li className="flex gap-3 items-start py-2 px-2 rounded-lg bg-white/90">
-        <span className={`w-2 h-2 rounded-full ${bulletColor} mt-2.5 shrink-0`} />
-        <div className="flex-1 min-w-0">
+  return (
+    <div
+      className={`ed-card ${note.depth === 'floating' ? 'float' : 'sink'} ${isNew ? 'ed-reveal in' : ''}`}
+    >
+      <div className="ed-card-actions">
+        <button
+          className="ed-card-action-btn"
+          onClick={() => onToggleDepth(note)}
+          title={note.depth === 'floating' ? 'העבר לצולל' : 'העבר לצף'}
+        >
+          {note.depth === 'floating' ? '↓' : '↑'}
+        </button>
+        <button
+          className="ed-card-action-btn"
+          onClick={() => onEditStart(note)}
+          title="עריכה"
+        >
+          ✎
+        </button>
+        <button
+          className="ed-card-action-btn"
+          onClick={() => onDelete(note.id)}
+          title="מחיקה"
+        >
+          ×
+        </button>
+      </div>
+      <div className="ed-card-kicker">
+        <span className="ed-card-dot"></span>
+        <span>{note.depth === 'floating' ? 'צף' : 'צולל'}</span>
+      </div>
+      {isEditing ? (
+        <div>
           <textarea
             value={editContent}
-            onChange={(e) => onEditChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white resize-none focus:outline-none focus:border-teal-500"
-            rows={2}
+            onChange={(e) => setEditContent(e.target.value)}
+            rows={3}
             autoFocus
+            style={{
+              width: '100%',
+              padding: 12,
+              fontFamily: "'Frank Ruhl Libre', serif",
+              fontSize: 18,
+              border: `1px solid ${dark ? 'rgba(255,255,255,0.3)' : 'var(--line)'}`,
+              background: 'transparent',
+              color: 'inherit',
+              resize: 'vertical',
+              marginBottom: 12,
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey))
                 onEditSave(note.id)
               if (e.key === 'Escape') onEditCancel()
             }}
           />
-          <div className="flex gap-2 mt-2">
+          <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={() => onEditSave(note.id)}
-              className="px-3 py-1 text-xs bg-teal-600 text-white rounded-md cursor-pointer"
+              className="ed-btn-line"
+              style={{
+                padding: '8px 18px',
+                fontSize: 12,
+                color: dark ? 'var(--ink)' : 'var(--paper)',
+                background: dark ? 'var(--paper)' : 'var(--ink)',
+                border: 'none',
+              }}
             >
               שמור
             </button>
             <button
               onClick={onEditCancel}
-              className="px-3 py-1 text-xs text-gray-500 cursor-pointer"
+              style={{
+                padding: '8px 18px',
+                fontSize: 12,
+                background: 'transparent',
+                border: 'none',
+                color: 'inherit',
+                cursor: 'pointer',
+                opacity: 0.6,
+              }}
             >
               ביטול
             </button>
           </div>
         </div>
-      </li>
-    )
-  }
-
-  return (
-    <li
-      className={`group flex gap-3 items-start py-1.5 px-2 rounded-lg ${hoverBg} transition-colors ${isNew ? 'note-enter' : ''}`}
-    >
-      <span
-        className={`w-2 h-2 rounded-full ${bulletColor} mt-2 shrink-0`}
-      />
-      <div className={`flex-1 min-w-0 text-sm leading-relaxed ${textColor}`}>
-        {note.content}
-        {note.author_name && (
-          <span className={`text-[10px] mr-2 ${authorColor}`}>
-            — {note.author_name}
-          </span>
-        )}
-      </div>
-      <div className="dot-actions flex gap-0.5 shrink-0">
-        <button
-          onClick={() => onToggleDepth(note)}
-          className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold cursor-pointer ${
-            isDeep
-              ? 'bg-white/20 text-white hover:bg-white/30'
-              : 'bg-white/60 text-gray-500 hover:text-indigo-600'
-          }`}
-          title={isDeep ? 'העבר לצף' : 'העבר לצולל'}
-        >
-          {isDeep ? '~' : '//'}
-        </button>
-        <button
-          onClick={() => onEditStart(note)}
-          className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] cursor-pointer ${
-            isDeep
-              ? 'bg-white/20 text-white hover:bg-white/30'
-              : 'bg-white/60 text-gray-500 hover:text-teal-600'
-          }`}
-          title="עריכה"
-        >
-          &#9998;
-        </button>
-        <button
-          onClick={() => onDelete(note.id)}
-          className={`w-6 h-6 rounded-md flex items-center justify-center text-xs cursor-pointer ${
-            isDeep
-              ? 'bg-white/20 text-white hover:bg-red-500'
-              : 'bg-white/60 text-gray-500 hover:text-red-500'
-          }`}
-          title="מחיקה"
-        >
-          &times;
-        </button>
-      </div>
-    </li>
+      ) : (
+        <blockquote>&ldquo;{note.content}&rdquo;</blockquote>
+      )}
+      {note.author_name && !isEditing && (
+        <div className="ed-attr">
+          <div className="ed-av">{initial}</div>
+          <span>{note.author_name}</span>
+        </div>
+      )}
+    </div>
   )
 }

@@ -3,16 +3,33 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Challenge, Group } from '@/lib/types'
+import { Challenge, Group, Depth } from '@/lib/types'
+import { WINDOWS } from '@/lib/windows-data'
+import { EditorialChrome } from '@/components/EditorialChrome'
+
+interface GroupRow extends Group {
+  member_count: number
+  member_names: string[]
+  note_count: number
+  windows_filled: number
+  last_active: string | null
+}
+
+interface WindowAgg {
+  n: number
+  floating: number
+  deep: number
+}
 
 export default function ChallengePage() {
   const { challengeId } = useParams<{ challengeId: string }>()
   const router = useRouter()
   const [challenge, setChallenge] = useState<Challenge | null>(null)
-  const [groups, setGroups] = useState<(Group & { member_count: number })[]>([])
+  const [groups, setGroups] = useState<GroupRow[]>([])
+  const [windowAggs, setWindowAggs] = useState<WindowAgg[]>([])
   const [loading, setLoading] = useState(true)
+  const [showCreate, setShowCreate] = useState(false)
   const [creating, setCreating] = useState(false)
-
   const [groupName, setGroupName] = useState('')
   const [memberNames, setMemberNames] = useState('')
 
@@ -23,20 +40,69 @@ export default function ChallengePage() {
         .select('*')
         .eq('id', challengeId)
         .single()
-      if (c) setChallenge(c)
+      if (c) setChallenge(c as Challenge)
 
       const { data: g } = await supabase
         .from('groups')
-        .select('*, group_members(id)')
+        .select('*, group_members(name)')
         .eq('challenge_id', challengeId)
         .order('created_at')
 
       if (g) {
-        setGroups(
-          g.map((group: Record<string, unknown>) => ({
-            ...group,
-            member_count: (group.group_members as unknown[])?.length || 0,
-          })) as (Group & { member_count: number })[]
+        const rows: GroupRow[] = await Promise.all(
+          g.map(async (group: Record<string, unknown>) => {
+            const members = (group.group_members as { name: string }[]) || []
+            const { data: notes } = await supabase
+              .from('notes')
+              .select('window_number, created_at')
+              .eq('group_id', group.id as string)
+              .order('created_at', { ascending: false })
+
+            const windowsFilled = new Set(
+              (notes || []).map((n: { window_number: number }) => n.window_number),
+            ).size
+
+            return {
+              id: group.id as string,
+              challenge_id: group.challenge_id as string,
+              name: group.name as string,
+              created_at: group.created_at as string,
+              member_count: members.length,
+              member_names: members.map((m) => m.name),
+              note_count: notes?.length || 0,
+              windows_filled: windowsFilled,
+              last_active: notes?.[0]?.created_at || null,
+            }
+          }),
+        )
+        setGroups(rows)
+      }
+
+      // Aggregate notes by window across all groups of this challenge
+      if (g && g.length > 0) {
+        const groupIds = g.map((grp) => grp.id as string)
+        const { data: allNotes } = await supabase
+          .from('notes')
+          .select('window_number, depth')
+          .in('group_id', groupIds)
+
+        const aggMap: Record<number, WindowAgg> = {}
+        for (let i = 1; i <= 9; i++) {
+          aggMap[i] = { n: i, floating: 0, deep: 0 }
+        }
+        ;(allNotes || []).forEach((n: { window_number: number; depth: Depth }) => {
+          if (aggMap[n.window_number]) {
+            aggMap[n.window_number][n.depth]++
+          }
+        })
+        setWindowAggs(Object.values(aggMap))
+      } else {
+        setWindowAggs(
+          Array.from({ length: 9 }, (_, i) => ({
+            n: i + 1,
+            floating: 0,
+            deep: 0,
+          })),
         )
       }
 
@@ -69,117 +135,434 @@ export default function ChallengePage() {
 
       router.push(`/workshop/${group.id}`)
     }
-
     setCreating(false)
   }
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full" />
+      <main className="ed-root min-h-screen flex items-center justify-center">
+        <div className="text-sm ed-mono">טוען...</div>
       </main>
     )
   }
 
+  const totalNotes = groups.reduce((s, g) => s + g.note_count, 0)
+  const activeGroups = groups.filter((g) => {
+    if (!g.last_active) return false
+    const lastMs = new Date(g.last_active).getTime()
+    return Date.now() - lastMs < 15 * 60 * 1000 // 15 minutes
+  }).length
+
+  // rand for stones
+  const r = (a: number, b: number) => a + Math.random() * (b - a)
+
   return (
-    <main className="min-h-screen px-4 py-8 max-w-4xl mx-auto page-enter">
-      <button
-        onClick={() => router.push('/')}
-        className="text-teal-600/60 hover:text-teal-700 text-sm mb-6 flex items-center gap-1 cursor-pointer"
-      >
-        <span>&rarr;</span>
-        <span>חזרה לבחירת אתגר</span>
-      </button>
-
-      {challenge && (
-        <div className="mb-10">
-          <h1 className="text-3xl font-bold text-teal-900 mb-3">
-            {challenge.name}
+    <EditorialChrome
+      activePage="challenge"
+      breadcrumb={[
+        { label: 'תשעת החלונות', href: '/' },
+        { label: 'אתגרים' },
+        { label: challenge?.name || 'אתגר' },
+      ]}
+    >
+      {/* Hero */}
+      <section className="ed-ch-hero">
+        <div className="ed-container">
+          <div className="ed-kicker ed-reveal">אתגר · מחזור ז׳</div>
+          <h1 className="ed-h-display ed-reveal ed-reveal-d1 ed-serif">
+            {challenge?.name.split(':').length === 2
+              ? challenge.name.split(':')[1].trim()
+              : challenge?.name || ''}
+            .
           </h1>
-          <p className="text-teal-700/70 leading-relaxed">{challenge.description}</p>
-        </div>
-      )}
-
-      <div className="grid md:grid-cols-2 gap-8">
-        {/* Create new group */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-teal-200/40">
-          <h2 className="text-lg font-bold text-teal-900 mb-1">
-            יצירת קבוצה חדשה
-          </h2>
-          <p className="text-sm text-teal-600/60 mb-5">
-            הקימו קבוצת עבודה וצללו לתוך האתגר
-          </p>
-
-          <div className="space-y-4">
+          {challenge?.description && (
+            <p className="ed-lead-ch ed-reveal ed-reveal-d2">
+              {challenge.description}
+            </p>
+          )}
+          <div className="ed-ch-stats ed-reveal ed-reveal-d3">
             <div>
-              <label className="block text-sm font-medium text-teal-800 mb-1">
-                שם הקבוצה
-              </label>
-              <input
-                type="text"
-                value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
-                placeholder='למשל: "צוות אלפא"'
-                className="w-full px-4 py-2.5 border border-teal-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white/60"
-              />
+              <div className="ed-num">{groups.length}</div>
+              <div className="ed-lbl">קבוצות</div>
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-teal-800 mb-1">
-                שמות המשתתפים
-              </label>
-              <textarea
-                value={memberNames}
-                onChange={(e) => setMemberNames(e.target.value)}
-                placeholder={'שם בכל שורה:\nדנה כהן\nיוסי לוי\nמיכל אברהם'}
-                rows={4}
-                className="w-full px-4 py-2.5 border border-teal-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none bg-white/60"
-              />
+              <div className="ed-num">{totalNotes}</div>
+              <div className="ed-lbl">נקודות בבריכה</div>
             </div>
-
-            <button
-              onClick={handleCreate}
-              disabled={!groupName.trim() || creating}
-              className="w-full py-3 btn-pool font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            >
-              {creating ? 'יוצר קבוצה...' : 'צרו קבוצה וצללו פנימה'}
-            </button>
+            <div>
+              <div className="ed-num">9</div>
+              <div className="ed-lbl">חלונות · 3×3</div>
+            </div>
+            <div>
+              <div className="ed-num">{activeGroups}</div>
+              <div className="ed-lbl">קבוצות פעילות</div>
+            </div>
           </div>
         </div>
+      </section>
 
-        {/* Join existing group */}
-        <div>
-          <h2 className="text-lg font-bold text-teal-900 mb-1">
-            הצטרפות לקבוצה קיימת
+      {/* Mega pool — 9 windows aggregate */}
+      <section className="ed-mega-pool ed-caustics-after">
+        <div
+          className="ed-container"
+          style={{ position: 'relative', zIndex: 1 }}
+        >
+          <div className="ed-label ed-reveal">01 · הבריכה</div>
+          <h2 className="ed-h-xl ed-reveal ed-reveal-d1 ed-serif">
+            תשעה חלונות. <em className="ed-em">בריכה אחת.</em>
           </h2>
-          <p className="text-sm text-teal-600/60 mb-5">
-            בחרו מתוך הקבוצות שכבר צללו
+          <p className="ed-mp-sub ed-reveal ed-reveal-d2">
+            כל חלון הוא חתך של הבריכה. מה שצף — דברים שיודעים. מה שצולל —
+            שאלות לחקור. סיכום כל הקבוצות.
           </p>
-
-          {groups.length === 0 ? (
-            <div className="bg-teal-50/50 rounded-2xl p-8 text-center text-teal-500/60 text-sm border border-dashed border-teal-300/40">
-              עדיין אין קבוצות. צרו את הראשונה!
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {groups.map((g) => (
-                <button
-                  key={g.id}
-                  onClick={() => router.push(`/workshop/${g.id}`)}
-                  className="w-full bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-teal-200/40 hover:border-teal-300 hover:shadow-md hover:shadow-teal-100/50 transition-all text-right cursor-pointer"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-teal-500/60">
-                      {g.member_count} משתתפים
+          <div className="ed-col-legend ed-reveal ed-reveal-d2">
+            <div>עבר · שורש</div>
+            <div>הווה · עוגן</div>
+            <div>עתיד · יעד</div>
+          </div>
+          <div className="ed-pool-wrap ed-reveal ed-reveal-d3">
+            <div className="ed-pool-grid">
+              {windowAggs.map((agg) => {
+                const win = WINDOWS.find((w) => w.number === agg.n)
+                const maxFloat = Math.min(agg.floating, 10)
+                const maxDeep = Math.min(agg.deep, 10)
+                const isActive = agg.floating + agg.deep > 0
+                return (
+                  <div
+                    key={agg.n}
+                    className={`ed-win ${isActive ? 'active' : ''}`}
+                    onClick={() => {
+                      // Navigate to first group's window, or stay put if no groups
+                      if (groups[0]) {
+                        router.push(
+                          `/workshop/${groups[0].id}/window/${agg.n}`,
+                        )
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className="ed-win-waterline"></div>
+                    <span className="ed-w-num">{String(agg.n).padStart(2, '0')}</span>
+                    <span className="ed-w-label">
+                      {win
+                        ? `${win.systemLevel === 'super' ? 'מערכת-על' : win.systemLevel === 'system' ? 'מערכת' : 'תת-מערכת'} · ${win.timeFrame === 'past' ? 'עבר' : win.timeFrame === 'present' ? 'הווה' : 'עתיד'}`
+                        : ''}
                     </span>
-                    <h3 className="font-semibold text-teal-800">{g.name}</h3>
+                    <span className="ed-w-count">
+                      {agg.floating + agg.deep} נקודות · {agg.floating}↑ {agg.deep}↓
+                    </span>
+                    <span className="ed-w-title">{win?.title || ''}</span>
+                    <div className="ed-win-floor"></div>
+                    <div className="ed-stones">
+                      {Array.from({ length: maxFloat }).map((_, i) => {
+                        const sz = 7 + Math.random() * 5
+                        return (
+                          <div
+                            key={`f-${i}`}
+                            className="ed-stone float"
+                            style={{
+                              left: r(6, 92) + '%',
+                              top: r(4, 18) + '%',
+                              width: sz,
+                              height: sz,
+                              animationDelay: r(0, 2) + 's',
+                            }}
+                          />
+                        )
+                      })}
+                      {Array.from({ length: maxDeep }).map((_, i) => {
+                        const sz = 9 + Math.random() * 8
+                        return (
+                          <div
+                            key={`d-${i}`}
+                            className="ed-stone deep"
+                            style={{
+                              left: r(6, 92) + '%',
+                              top: r(45, 88) + '%',
+                              width: sz,
+                              height: sz,
+                            }}
+                          />
+                        )
+                      })}
+                    </div>
                   </div>
-                </button>
-              ))}
+                )
+              })}
             </div>
-          )}
+          </div>
         </div>
-      </div>
-    </main>
+      </section>
+
+      {/* Groups list */}
+      <section className="ed-groups">
+        <div className="ed-container">
+          <div className="ed-groups-header ed-reveal">
+            <div className="ed-label">02 · קבוצות</div>
+            <h2 className="ed-h-xl ed-serif">
+              {groups.length === 1 ? 'קבוצה אחת.' : `${groups.length} קבוצות.`}{' '}
+              <em className="ed-em">
+                {groups.length === 1 ? 'קול אחד.' : `${groups.length} קולות.`}
+              </em>
+            </h2>
+            <p
+              className="ed-body-lg"
+              style={{ color: 'var(--muted-ink)', maxWidth: 560 }}
+            >
+              כל קבוצה רואה את כל תשעת החלונות — אבל מתחילה מזווית אחרת.
+              השוואה מגיעה בשלב השיתוף.
+            </p>
+          </div>
+          <div className="ed-groups-list">
+            {groups.length === 0 ? (
+              <p
+                style={{
+                  textAlign: 'center',
+                  padding: '60px 0',
+                  color: 'var(--muted-ink)',
+                }}
+              >
+                עדיין אין קבוצות באתגר הזה.
+              </p>
+            ) : (
+              groups.map((g, idx) => {
+                const isLive =
+                  g.last_active &&
+                  Date.now() - new Date(g.last_active).getTime() <
+                    15 * 60 * 1000
+                return (
+                  <div
+                    key={g.id}
+                    className={`ed-group-row ed-reveal ${
+                      idx > 0 ? `ed-reveal-d${Math.min(idx, 3)}` : ''
+                    }`}
+                    onClick={() => router.push(`/workshop/${g.id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') router.push(`/workshop/${g.id}`)
+                    }}
+                  >
+                    <div className="ed-idx">
+                      {String(idx + 1).padStart(2, '0')}
+                    </div>
+                    <div>
+                      <div className="ed-g-name">{g.name}</div>
+                      <div className="ed-g-sub">
+                        {g.member_names.length > 0
+                          ? g.member_names.join(' · ')
+                          : `${g.member_count} משתתפים`}
+                      </div>
+                    </div>
+                    <div className="ed-metric">
+                      <b>{g.note_count}</b>
+                      נקודות
+                    </div>
+                    <div className="ed-metric">
+                      <b>{g.windows_filled}/9</b>
+                      חלונות
+                    </div>
+                    <div className={`ed-status ${isLive ? 'live' : ''}`}>
+                      <span className="ed-status-dot"></span>
+                      {isLive ? 'פעילה עכשיו' : 'לא פעילה'}
+                    </div>
+                    <div className="ed-arr">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      >
+                        <path d="M9 6l6 6-6 6" />
+                      </svg>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+
+            {/* Create new group toggle */}
+            {!showCreate ? (
+              <div
+                className="ed-group-row ed-reveal"
+                onClick={() => setShowCreate(true)}
+                role="button"
+                tabIndex={0}
+                style={{ color: 'var(--water-700)' }}
+              >
+                <div className="ed-idx">+</div>
+                <div>
+                  <div className="ed-g-name">יצירת קבוצה חדשה</div>
+                  <div className="ed-g-sub">
+                    הקימו קבוצה חדשה באתגר הזה
+                  </div>
+                </div>
+                <div></div>
+                <div></div>
+                <div></div>
+                <div className="ed-arr">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  padding: 36,
+                  border: '1px solid var(--line)',
+                  background: 'var(--paper)',
+                  marginTop: 20,
+                }}
+              >
+                <h3
+                  style={{
+                    fontFamily: "'Frank Ruhl Libre', serif",
+                    fontSize: 26,
+                    fontWeight: 500,
+                    marginBottom: 16,
+                  }}
+                >
+                  יצירת קבוצה חדשה
+                </h3>
+                <div style={{ marginBottom: 14 }}>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: 11,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      color: 'var(--muted-ink)',
+                      marginBottom: 6,
+                    }}
+                  >
+                    שם הקבוצה
+                  </label>
+                  <input
+                    type="text"
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    placeholder="רותם · אלון · זית · אורן..."
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px',
+                      fontFamily: "'Heebo', sans-serif",
+                      fontSize: 15,
+                      border: '1px solid var(--line)',
+                      background: 'transparent',
+                    }}
+                  />
+                </div>
+                <div style={{ marginBottom: 18 }}>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: 11,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      color: 'var(--muted-ink)',
+                      marginBottom: 6,
+                    }}
+                  >
+                    שמות משתתפים — שם בכל שורה
+                  </label>
+                  <textarea
+                    value={memberNames}
+                    onChange={(e) => setMemberNames(e.target.value)}
+                    rows={4}
+                    placeholder={'שגית כהן\nדני לוי\nרחל פרץ'}
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px',
+                      fontFamily: "'Heebo', sans-serif",
+                      fontSize: 14,
+                      border: '1px solid var(--line)',
+                      background: 'transparent',
+                      resize: 'vertical',
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button
+                    onClick={handleCreate}
+                    disabled={!groupName.trim() || creating}
+                    className="ed-btn-line dark"
+                  >
+                    {creating ? 'יוצר...' : 'צרו קבוצה וצללו'}
+                  </button>
+                  <button
+                    onClick={() => setShowCreate(false)}
+                    style={{
+                      padding: '18px 30px',
+                      fontFamily: "'Heebo', sans-serif",
+                      fontSize: 14,
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--muted-ink)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ביטול
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="ed-bottom-cta">
+        <div className="ed-container">
+          <h2 className="ed-serif">
+            {groups.length > 0 ? 'ארבע בריכות.' : 'בריכה אחת.'}
+            <br />
+            <em className="ed-em">מדיה משותפת.</em>
+          </h2>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 16,
+              flexWrap: 'wrap',
+            }}
+          >
+            <a
+              className="ed-btn-line light"
+              href={`/shared/${challengeId}`}
+            >
+              מעבר לבריכה המשותפת
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <path d="M15 6l-6 6 6 6" />
+              </svg>
+            </a>
+            <a className="ed-btn-line light" href="/admin">
+              תצוגת ניהול
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <path d="M15 6l-6 6 6 6" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </section>
+    </EditorialChrome>
   )
 }
