@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Challenge } from '@/lib/types'
+import { loadLabels, L, DEFAULT_LABELS } from '@/lib/content'
 
 interface ChallengeWithCount extends Challenge {
   note_count: number
@@ -14,7 +15,12 @@ const CHALLENGE_KICKERS = ['הערכה', 'מוריות', 'דיגיטל', 'שיי
 
 export default function Home() {
   const [challenges, setChallenges] = useState<ChallengeWithCount[]>([])
+  const [labels, setLabels] = useState<Record<string, string>>(DEFAULT_LABELS)
   const router = useRouter()
+
+  useEffect(() => {
+    loadLabels().then(setLabels)
+  }, [])
 
   useEffect(() => {
     async function load() {
@@ -126,35 +132,38 @@ export default function Home() {
       <section className="ed-hero">
         <div className="ed-container">
           <div className="ed-kicker ed-reveal">
-            אדוות · מחזור ז׳ · יולי 2026
+            {L(labels, 'landing_kicker')}
           </div>
           <h1 className="ed-h-display ed-reveal ed-reveal-d1 ed-serif">
-            תשעת
+            {L(labels, 'landing_title_line1')}
             <br />
-            החלונות.
+            {L(labels, 'landing_title_line2')}
             <br />
             <em className="ed-em">
-              כל אחד מהם
+              {L(labels, 'landing_title_em_line1')}
               <br />
-              בריכה.
+              {L(labels, 'landing_title_em_line2')}
             </em>
           </h1>
           <p className="ed-lead ed-reveal ed-reveal-d2">
-            שיטה קבוצתית להתמודדות עם אתגר מורכב — לא דרך סיעור מוחות, אלא
-            דרך עבודה איטית. נקודות שצפות מהר. נקודות ששוקעות לעומק.
+            {L(labels, 'landing_lead')}
           </p>
           <div className="ed-meta ed-reveal ed-reveal-d3">
             <span>
-              <b>9</b>חלונות · מערכת × זמן
+              <b>{L(labels, 'landing_meta_1_b')}</b>
+              {L(labels, 'landing_meta_1_text')}
             </span>
             <span>
-              <b>{challenges.length || '—'}</b>אתגרים במחזור
+              <b>{challenges.length || '—'}</b>
+              {L(labels, 'landing_meta_2_text')}
             </span>
             <span>
-              <b>2</b>רבדים · צף ושקוע
+              <b>{L(labels, 'landing_meta_3_b')}</b>
+              {L(labels, 'landing_meta_3_text')}
             </span>
             <span>
-              <b>3-5</b>שעות · מושב מלא
+              <b>{L(labels, 'landing_meta_4_b')}</b>
+              {L(labels, 'landing_meta_4_text')}
             </span>
           </div>
         </div>
@@ -164,8 +173,10 @@ export default function Home() {
       <div className="ed-hero-pool">
         <div className="ed-caustics"></div>
         <div className="ed-waterline"></div>
-        <div className="ed-label-top">פני המים · צף</div>
-        <div className="ed-label-bottom">עומק · שקוע</div>
+        <div className="ed-label-top">{L(labels, 'landing_pool_label_top')}</div>
+        <div className="ed-label-bottom">
+          {L(labels, 'landing_pool_label_bottom')}
+        </div>
 
         {/* Floating stones */}
         <div
@@ -308,52 +319,31 @@ export default function Home() {
       <section className="ed-section" id="ed-method">
         <div className="ed-container">
           <div className="ed-section-head ed-reveal">
-            <div
-              className="ed-label"
-              style={{ color: 'var(--water-700)' }}
-            >
-              01 · שיטה
+            <div className="ed-label" style={{ color: 'var(--water-700)' }}>
+              {L(labels, 'landing_method_label')}
             </div>
             <h2 className="ed-h-xl ed-serif">
-              לא סיעור מוחות.
+              {L(labels, 'landing_method_h1')}
               <br />
-              <em className="ed-em">ניתוח לעומק.</em>
+              <em className="ed-em">{L(labels, 'landing_method_em')}</em>
             </h2>
             <p
               className="ed-body-lg"
               style={{ color: 'var(--muted-ink)', maxWidth: 640 }}
             >
-              רוב התהליכים הקבוצתיים נשארים על פני השטח. תשעת החלונות מחזיקים
-              את הקבוצה בתוך האתגר מספיק זמן כדי שגם הנקודות הכבדות יעלו.
+              {L(labels, 'landing_method_intro')}
             </p>
           </div>
           <div className="ed-two-col">
             <div className="ed-reveal">
-              <h3>המטאפורה</h3>
-              <p>
-                דמיינו בריכה. <b>על פני המים</b> נקודות קלות — תצפיות, דברים
-                שאנחנו יודעים, מה שעולה מיד. הן גלויות, כי הן לא דורשות הצדקה.{' '}
-                <b>בעומק</b> שוכנות הנקודות הכבדות — שאלות שדורשות חקירה,
-                קישורים שנראים רק כשמסתכלים מספיק זמן, הודאות שקשה לאמר בקול.
-              </p>
-              <p>
-                שיטות רגילות אוספות רק את הצף. תשעת החלונות אוספים את שניהם —{' '}
-                <em className="ed-em">ומפרידים ביניהם במודע</em>, כדי שהקבוצה
-                תדע מה היא מחזיקה.
-              </p>
+              <h3>{L(labels, 'landing_method_col1_h3')}</h3>
+              <p>{L(labels, 'landing_method_col1_p1')}</p>
+              <p>{L(labels, 'landing_method_col1_p2')}</p>
             </div>
             <div className="ed-reveal ed-reveal-d1">
-              <h3>המטריצה</h3>
-              <p>
-                תשעה חלונות = שלוש רמות מערכתיות (
-                <b>מערכת-על · מערכת · תת-מערכת</b>) כפול שלושה זמנים (
-                <b>עבר · הווה · עתיד</b>). כל אתגר נבחן מכל הזוויות הללו.
-              </p>
-              <p>
-                הרעיון: בעיה אמיתית לא יושבת במשבצת אחת. היא מתפרסת. המטריצה
-                מאלצת את הקבוצה לבקר בכל המשבצות — גם באלה שלא נוח להיכנס
-                אליהן.
-              </p>
+              <h3>{L(labels, 'landing_method_col2_h3')}</h3>
+              <p>{L(labels, 'landing_method_col2_p1')}</p>
+              <p>{L(labels, 'landing_method_col2_p2')}</p>
             </div>
           </div>
         </div>
@@ -370,38 +360,30 @@ export default function Home() {
               className="ed-label"
               style={{ color: 'var(--water-700)' }}
             >
-              02 · עקרונות
+              {L(labels, 'landing_principles_label')}
             </div>
             <h2 className="ed-h-xl ed-serif">
-              שלושה עקרונות <em className="ed-em">של השיטה.</em>
+              {L(labels, 'landing_principles_h1')}{' '}
+              <em className="ed-em">
+                {L(labels, 'landing_principles_em')}
+              </em>
             </h2>
           </div>
           <div className="ed-principles">
             <div className="ed-principle ed-reveal">
               <div className="ed-n">01</div>
-              <h4>הפרדה מודעת</h4>
-              <p>
-                צף ושקוע אינם מעורבבים. נקודה שנרשמה כצפה לא עוברת לעומק רק
-                בגלל שמישהו אמר &quot;זה עמוק&quot;. הקבוצה מחליטה באופן מכוון,
-                כי ערך המידע נעוץ דווקא בהבחנה.
-              </p>
+              <h4>{L(labels, 'landing_principle_1_title')}</h4>
+              <p>{L(labels, 'landing_principle_1_body')}</p>
             </div>
             <div className="ed-principle ed-reveal ed-reveal-d1">
               <div className="ed-n">02</div>
-              <h4>חזרה אל אותו חלון</h4>
-              <p>
-                הקבוצה לא ממהרת קדימה. כל חלון נפתח פעמיים — פעם ראשונה לרובד
-                הצף, פעם שנייה, אחרי שקט, לעומק. הפסקות הן חלק מהשיטה, לא עיכוב.
-              </p>
+              <h4>{L(labels, 'landing_principle_2_title')}</h4>
+              <p>{L(labels, 'landing_principle_2_body')}</p>
             </div>
             <div className="ed-principle ed-reveal ed-reveal-d2">
               <div className="ed-n">03</div>
-              <h4>בריכות מקבילות</h4>
-              <p>
-                ארבע קבוצות פועלות במקביל על אותו אתגר. בסוף — הבריכות
-                מתאחדות. נקודות שחזרו בארבע קבוצות הן איתותי אמת; יחידות הן
-                איתותי עומק.
-              </p>
+              <h4>{L(labels, 'landing_principle_3_title')}</h4>
+              <p>{L(labels, 'landing_principle_3_body')}</p>
             </div>
           </div>
         </div>
@@ -415,27 +397,27 @@ export default function Home() {
               className="ed-label"
               style={{ color: 'var(--water-300)' }}
             >
-              03 · המטריצה
+              {L(labels, 'landing_grid_label')}
             </div>
             <h2
               className="ed-h-xl ed-serif"
               style={{ color: 'var(--paper)' }}
             >
-              תשעה חלונות.
+              {L(labels, 'landing_grid_h1')}
               <br />
-              <em className="ed-em">שלוש רמות כפול שלושה זמנים.</em>
+              <em className="ed-em">{L(labels, 'landing_grid_em')}</em>
             </h2>
-            <p className="ed-body-lg">
-              כל חלון הוא בריכה עצמאית. כל חלון נפתח פעמיים — לרובד הצף
-              ולעומק.
-              מסלול מלא הוא 18 צלילות.
-            </p>
+            <p className="ed-body-lg">{L(labels, 'landing_grid_body')}</p>
           </div>
           <div className="ed-nine-grid">
             <div></div>
-            <div className="ed-col-h">עבר</div>
-            <div className="ed-col-h">הווה</div>
-            <div className="ed-col-h">עתיד</div>
+            <div className="ed-col-h">{L(labels, 'landing_grid_col_past')}</div>
+            <div className="ed-col-h">
+              {L(labels, 'landing_grid_col_present')}
+            </div>
+            <div className="ed-col-h">
+              {L(labels, 'landing_grid_col_future')}
+            </div>
 
             <div className="ed-row-h">מערכת-על</div>
             {gridLabels.slice(0, 3).map((g) => (
@@ -526,56 +508,52 @@ export default function Home() {
               className="ed-label"
               style={{ color: 'var(--water-700)' }}
             >
-              04 · תהליך
+              {L(labels, 'landing_process_label')}
             </div>
             <h2 className="ed-h-xl ed-serif">
-              מה שקורה <em className="ed-em">במושב.</em>
+              {L(labels, 'landing_process_h1')}{' '}
+              <em className="ed-em">{L(labels, 'landing_process_em')}</em>
             </h2>
           </div>
           <div className="ed-process-timeline">
             <div className="ed-step ed-reveal">
               <div className="ed-step-dot">1</div>
               <div className="ed-step-body">
-                <div className="ed-t">00:00 — 00:20</div>
-                <h4>חלוקה לקבוצות</h4>
-                <p>
-                  ארבע קבוצות של 3-4 איש. כל קבוצה מקבלת שם (רותם · אלון · זית
-                  · אורן) ובריכה משלה. אותו אתגר לכולן.
-                </p>
+                <div className="ed-t">
+                  {L(labels, 'landing_process_step_1_time')}
+                </div>
+                <h4>{L(labels, 'landing_process_step_1_title')}</h4>
+                <p>{L(labels, 'landing_process_step_1_body')}</p>
               </div>
             </div>
             <div className="ed-step ed-reveal">
               <div className="ed-step-dot">2</div>
               <div className="ed-step-body">
-                <div className="ed-t">00:20 — 02:20</div>
-                <h4>תשעה חלונות · שני רבדים</h4>
-                <p>
-                  הקבוצה עוברת חלון אחרי חלון. בכל חלון: שמונה דקות לרובד הצף,
-                  שקט של דקה, שתים-עשרה דקות לעומק. סה&quot;כ כעשרים ושתיים
-                  דקות לחלון.
-                </p>
+                <div className="ed-t">
+                  {L(labels, 'landing_process_step_2_time')}
+                </div>
+                <h4>{L(labels, 'landing_process_step_2_title')}</h4>
+                <p>{L(labels, 'landing_process_step_2_body')}</p>
               </div>
             </div>
             <div className="ed-step active ed-reveal">
               <div className="ed-step-dot">3</div>
               <div className="ed-step-body">
-                <div className="ed-t">02:20 — 03:20</div>
-                <h4>בריכה משותפת</h4>
-                <p>
-                  כל הנקודות מכל הקבוצות מתאחדות. חיפוש חזרות, חיפוש יחידאיים,
-                  חיפוש סתירות. זה הרגע שבו השיטה עובדת — או לא.
-                </p>
+                <div className="ed-t">
+                  {L(labels, 'landing_process_step_3_time')}
+                </div>
+                <h4>{L(labels, 'landing_process_step_3_title')}</h4>
+                <p>{L(labels, 'landing_process_step_3_body')}</p>
               </div>
             </div>
             <div className="ed-step ed-reveal">
               <div className="ed-step-dot">4</div>
               <div className="ed-step-body">
-                <div className="ed-t">03:20 — 04:00</div>
-                <h4>החלטות</h4>
-                <p>
-                  לא כל מושב מסתיים בהחלטות. לפעמים התוצר הוא רק &quot;עכשיו
-                  אנחנו רואים יותר ברור&quot;. גם זה תוצר.
-                </p>
+                <div className="ed-t">
+                  {L(labels, 'landing_process_step_4_time')}
+                </div>
+                <h4>{L(labels, 'landing_process_step_4_title')}</h4>
+                <p>{L(labels, 'landing_process_step_4_body')}</p>
               </div>
             </div>
           </div>
@@ -593,19 +571,18 @@ export default function Home() {
               className="ed-label"
               style={{ color: 'var(--water-700)' }}
             >
-              05 · אתגרי מחזור ז׳
+              {L(labels, 'landing_cases_label')}
             </div>
             <h2 className="ed-h-xl ed-serif">
               {challenges.length > 1 ? `${challenges.length} אתגרים` : 'אתגר'}.
               <br />
-              <em className="ed-em">אותו מושב.</em>
+              <em className="ed-em">{L(labels, 'landing_cases_em')}</em>
             </h2>
             <p
               className="ed-body-lg"
               style={{ color: 'var(--muted-ink)', maxWidth: 640 }}
             >
-              במחזור הנוכחי, קבוצות בוחרות מבין אתגרים מערכתיים מתחום החינוך.
-              לכל אתגר דגשים אחרים בכל קבוצה.
+              {L(labels, 'landing_cases_body')}
             </p>
           </div>
           <div className="ed-cases">
@@ -639,20 +616,17 @@ export default function Home() {
       <section className="ed-cta-section">
         <div className="ed-container">
           <h2 className="ed-serif">
-            נכנסים
+            {L(labels, 'landing_cta_h1')}
             <br />
-            <em className="ed-em">למים.</em>
+            <em className="ed-em">{L(labels, 'landing_cta_em')}</em>
           </h2>
-          <p>
-            היכנסו לבריכה של מחזור ז׳. אתגר פעיל, קבוצות עובדות, נקודות כבר
-            בפנים.
-          </p>
+          <p>{L(labels, 'landing_cta_body')}</p>
           <div className="ed-cta-buttons">
             <a href={firstChallengeHref} className="ed-btn">
-              פתחו את האתגר
+              {L(labels, 'landing_cta_btn_primary')}
             </a>
             <a href="/admin" className="ed-btn ghost">
-              דשבורד ניהול
+              {L(labels, 'landing_cta_btn_secondary')}
             </a>
           </div>
         </div>
@@ -677,10 +651,10 @@ export default function Home() {
           <div className="ed-end-col">
             <div className="ed-label">קרדיט</div>
             <span style={{ fontSize: 13, padding: '4px 0', display: 'block' }}>
-              פיתוח בהשראת טריז
+              {L(labels, 'footer_credit_1')}
             </span>
             <span style={{ fontSize: 13, padding: '4px 0', display: 'block' }}>
-              מרכז הידע היישומי של חותם
+              {L(labels, 'footer_credit_2')}
             </span>
           </div>
         </div>
