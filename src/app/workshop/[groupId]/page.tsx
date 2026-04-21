@@ -7,6 +7,10 @@ import { WINDOWS } from '@/lib/windows-data'
 import { Challenge, Group, Depth } from '@/lib/types'
 
 type WindowCounts = Record<number, { floating: number; deep: number; total: number }>
+type WindowNotes = Record<number, {
+  floating: { content: string; author_name: string | null }[]
+  deep: { content: string; author_name: string | null }[]
+}>
 
 export default function WorkshopGrid() {
   const { groupId } = useParams<{ groupId: string }>()
@@ -14,6 +18,7 @@ export default function WorkshopGrid() {
   const [group, setGroup] = useState<Group | null>(null)
   const [challenge, setChallenge] = useState<Challenge | null>(null)
   const [counts, setCounts] = useState<WindowCounts>({})
+  const [windowNotes, setWindowNotes] = useState<WindowNotes>({})
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [notebookUrl, setNotebookUrl] = useState<string | null>(null)
@@ -43,18 +48,34 @@ export default function WorkshopGrid() {
 
       const { data: notes } = await supabase
         .from('notes')
-        .select('window_number, depth')
+        .select('window_number, depth, content, author_name, created_at')
         .eq('group_id', groupId)
+        .order('created_at', { ascending: true })
 
       if (notes) {
         const c: WindowCounts = {}
-        for (let i = 1; i <= 9; i++)
+        const wn: WindowNotes = {}
+        for (let i = 1; i <= 9; i++) {
           c[i] = { floating: 0, deep: 0, total: 0 }
-        notes.forEach((n: { window_number: number; depth: Depth }) => {
-          c[n.window_number][n.depth]++
-          c[n.window_number].total++
-        })
+          wn[i] = { floating: [], deep: [] }
+        }
+        notes.forEach(
+          (n: {
+            window_number: number
+            depth: Depth
+            content: string
+            author_name: string | null
+          }) => {
+            c[n.window_number][n.depth]++
+            c[n.window_number].total++
+            wn[n.window_number][n.depth].push({
+              content: n.content,
+              author_name: n.author_name,
+            })
+          },
+        )
         setCounts(c)
+        setWindowNotes(wn)
       }
 
       setLoading(false)
@@ -283,6 +304,7 @@ export default function WorkshopGrid() {
             ...row.wins.map((n) => {
               const win = WINDOWS.find((w) => w.number === n)!
               const c = counts[n] || { floating: 0, deep: 0, total: 0 }
+              const wn = windowNotes[n] || { floating: [], deep: [] }
               const maxF = Math.min(c.floating, 8)
               const maxD = Math.min(c.deep, 8)
               const isNext = n === nextStep
@@ -313,11 +335,18 @@ export default function WorkshopGrid() {
                   <div className="wm-tile-title">{win.title}</div>
                   <div className="wm-tile-stones">
                     {Array.from({ length: maxF }).map((_, i) => {
-                      const sz = 7 + Math.random() * 5
+                      const note = wn.floating[i]
+                      const sz = 9 + Math.random() * 5
                       return (
                         <div
                           key={`f-${i}`}
-                          className="wm-stone float"
+                          className={`wm-stone float ${note ? 'has-content' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            router.push(
+                              `/workshop/${groupId}/window/${n}`,
+                            )
+                          }}
                           style={{
                             left: r(8, 88) + '%',
                             top: r(5, 30) + '%',
@@ -325,22 +354,57 @@ export default function WorkshopGrid() {
                             height: sz,
                             animationDelay: r(0, 2) + 's',
                           }}
-                        />
+                        >
+                          {note && (
+                            <div className="wm-stone-tip">
+                              <span className="wm-stone-tip-depth">
+                                ~ צף · חלון {n}
+                              </span>
+                              {note.content}
+                              {note.author_name && (
+                                <span className="wm-stone-tip-author">
+                                  — {note.author_name}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       )
                     })}
                     {Array.from({ length: maxD }).map((_, i) => {
-                      const sz = 9 + Math.random() * 7
+                      const note = wn.deep[i]
+                      const sz = 11 + Math.random() * 7
                       return (
                         <div
                           key={`d-${i}`}
-                          className="wm-stone deep"
+                          className={`wm-stone deep ${note ? 'has-content' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            router.push(
+                              `/workshop/${groupId}/window/${n}`,
+                            )
+                          }}
                           style={{
                             left: r(8, 88) + '%',
                             top: r(55, 92) + '%',
                             width: sz,
                             height: sz,
                           }}
-                        />
+                        >
+                          {note && (
+                            <div className="wm-stone-tip">
+                              <span className="wm-stone-tip-depth">
+                                // צולל · חלון {n}
+                              </span>
+                              {note.content}
+                              {note.author_name && (
+                                <span className="wm-stone-tip-author">
+                                  — {note.author_name}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       )
                     })}
                   </div>
