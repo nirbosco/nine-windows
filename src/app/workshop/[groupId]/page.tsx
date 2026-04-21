@@ -179,19 +179,16 @@ export default function WorkshopGrid() {
 
   return (
     <main className="wm-root">
-      {/* Top bar — dense, one strip */}
+      {/* Top bar — editorial, dense */}
       <div className="wm-topbar">
-        <div className="wm-crumb">
-          <a href="/">בית</a>
-          {' · '}
-          {challenge && (
-            <>
-              <a href={`/challenge/${challenge.id}`}>{challenge.name}</a>
-              {' · '}
-            </>
-          )}
+        <div className="wm-topbar-identity">
+          <span className="wm-kicker">
+            {challenge?.name || 'אתגר'}
+          </span>
+          <span className="wm-title">
+            קבוצת <em>{group?.name}.</em>
+          </span>
         </div>
-        <span className="wm-title">{group?.name}</span>
 
         <div className="wm-spacer" />
 
@@ -200,9 +197,7 @@ export default function WorkshopGrid() {
           <span>נקודות</span>
         </div>
         <div className="wm-stat">
-          <b>
-            {filled}/9
-          </b>
+          <b>{filled}/9</b>
           <span>חלונות</span>
         </div>
 
@@ -276,9 +271,9 @@ export default function WorkshopGrid() {
       <div className="wm-grid-body">
         <div className="wm-col-legend">
           <div></div>
-          <div>עבר</div>
-          <div>הווה</div>
-          <div>עתיד</div>
+          <div>עבר · שורש</div>
+          <div>הווה · עוגן</div>
+          <div>עתיד · יעד</div>
         </div>
         <div className="wm-pool">
           {rows.flatMap((row) => [

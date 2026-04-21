@@ -150,27 +150,16 @@ export default function WindowDetail() {
     <main className="wm-root">
       {/* Top bar */}
       <div className="wm-topbar">
-        <div className="wm-crumb">
-          <a href="/">בית</a>
-          {' · '}
-          {challenge && (
-            <>
-              <a href={`/challenge/${challenge.id}`}>{challenge.name}</a>
-              {' · '}
-            </>
-          )}
-          <a href={`/workshop/${groupId}`}>{group?.name}</a>
+        <div className="wm-topbar-identity">
+          <span className="wm-kicker">
+            {challenge?.name} · {group?.name}
+          </span>
+          <span className="wm-title">
+            חלון {String(winNum).padStart(2, '0')} ·{' '}
+            <em>{win.title.replace('?', '')}?</em>
+          </span>
         </div>
 
-        <span
-          className="wm-title"
-          style={{
-            fontFamily: "'Frank Ruhl Libre', serif",
-            fontSize: 18,
-          }}
-        >
-          {String(winNum).padStart(2, '0')} · {win.title}
-        </span>
         <span className="wm-subtitle">
           {sysLabel} · {timeLabel}
         </span>
@@ -217,6 +206,14 @@ export default function WindowDetail() {
       <div className="wm-window-body">
         {/* Sidebar: questions + add form (sticky) */}
         <aside className="wm-sidebar">
+          <div>
+            <div className="wm-side-kicker">שלב {winNum} מתוך 9</div>
+            <h1 className="wm-side-title">
+              {win.title.replace('?', '')}
+              <em>?</em>
+            </h1>
+          </div>
+
           {win.description && (
             <p className="wm-description">{win.description}</p>
           )}
@@ -312,10 +309,20 @@ export default function WindowDetail() {
           {/* Float lane */}
           <div className="wm-lane float">
             <div className="wm-lane-head">
-              <h2>
-                צף — <em>דברים שאנחנו יודעים</em>
-              </h2>
-              <span className="wm-lane-count">{floating.length}</span>
+              <div style={{ flex: 1 }}>
+                <div className="wm-lane-kicker">01 · על פני השטח</div>
+                <h2>
+                  צף —{' '}
+                  <em style={{ color: 'var(--water-500)' }}>
+                    דברים שאנחנו יודעים
+                  </em>
+                </h2>
+              </div>
+              <span className="wm-lane-count">
+                {floating.length === 1
+                  ? '1 נקודה'
+                  : `${floating.length} נקודות`}
+              </span>
             </div>
             {floating.length === 0 ? (
               <p className="wm-empty">
@@ -350,10 +357,18 @@ export default function WindowDetail() {
           {/* Deep lane */}
           <div className="wm-lane deep">
             <div className="wm-lane-head">
-              <h2>
-                צולל — <em>שאלות לצלול אליהן</em>
-              </h2>
-              <span className="wm-lane-count">{deep.length}</span>
+              <div style={{ flex: 1 }}>
+                <div className="wm-lane-kicker">02 · בתחתית</div>
+                <h2>
+                  צולל —{' '}
+                  <em style={{ color: 'var(--water-300)' }}>
+                    שאלות לצלול אליהן
+                  </em>
+                </h2>
+              </div>
+              <span className="wm-lane-count">
+                {deep.length === 1 ? '1 נקודה' : `${deep.length} נקודות`}
+              </span>
             </div>
             {deep.length === 0 ? (
               <p className="wm-empty">

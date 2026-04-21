@@ -3193,3 +3193,472 @@ body {
     grid-template-columns: 80px repeat(3, 1fr);
   }
 }
+
+/* ====================================================
+   WORKING MODE — EDITORIAL RICHNESS OVERLAY
+   Beauty + density. Typography, warmth, subtle motion.
+   ==================================================== */
+
+/* Upgrade top bar — editorial kicker + serif title */
+.wm-topbar {
+  background: var(--bone-050, #FBF8F3);
+  border-bottom: 1px solid var(--line);
+  padding: 14px 32px;
+  min-height: 68px;
+  font-family: 'Heebo', sans-serif;
+}
+
+.wm-topbar .wm-kicker {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--water-700);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.wm-topbar .wm-kicker::before {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background: currentColor;
+}
+
+.wm-topbar .wm-title {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.wm-topbar .wm-title em {
+  font-style: italic;
+  color: var(--water-800);
+}
+
+.wm-topbar .wm-subtitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--muted-ink);
+  text-transform: uppercase;
+}
+
+.wm-topbar .wm-crumb {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.wm-topbar .wm-stat b {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+
+.wm-topbar .wm-stat span {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-ink-2);
+}
+
+/* Header identity section — kicker above title */
+.wm-topbar-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wm-btn {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  font-weight: 600;
+}
+.wm-btn:hover {
+  border-color: var(--ink);
+  background: var(--bone-100, #F5F0E8);
+}
+.wm-btn.primary {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+/* ============= GRID BODY enrichment ============= */
+.wm-grid-body {
+  padding: 32px;
+  background: var(--water-900);
+}
+
+.wm-grid-body::before {
+  animation: ed-caustics 16s ease-in-out infinite;
+  background:
+    radial-gradient(ellipse 500px 100px at 20% 30%, rgba(123, 170, 194, 0.18), transparent 70%),
+    radial-gradient(ellipse 600px 120px at 80% 70%, rgba(45, 111, 148, 0.22), transparent 70%),
+    radial-gradient(ellipse 300px 60px at 50% 50%, rgba(214, 228, 236, 0.08), transparent 60%);
+}
+
+.wm-col-legend {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(214, 228, 236, 0.6);
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+.wm-col-legend > div {
+  padding: 8px 0;
+  font-weight: 500;
+}
+
+.wm-pool .wm-row-label {
+  background: rgba(5, 31, 48, 0.85);
+  color: var(--water-300);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  writing-mode: horizontal-tb;
+  font-weight: 500;
+  padding: 12px 8px;
+  text-align: center;
+}
+
+/* Tiles — more editorial feel */
+.wm-tile {
+  padding: 16px 18px;
+  transition: filter 0.3s, outline 0.3s, transform 0.3s;
+}
+.wm-tile:hover {
+  filter: brightness(1.25);
+  transform: translateY(-1px);
+}
+
+.wm-tile-num {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 28px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: -0.02em;
+}
+
+.wm-tile-time {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.wm-tile-title {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin-top: 10px;
+  color: var(--paper);
+}
+
+.wm-tile-footer {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 8px;
+}
+
+.wm-dive-cta {
+  font-family: 'Heebo', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+  color: var(--water-100);
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wm-tile.next .wm-dive-cta::before {
+  content: '';
+  width: 16px;
+  height: 1px;
+  background: currentColor;
+  display: inline-block;
+}
+
+/* ============= WINDOW DETAIL enrichment ============= */
+
+.wm-sidebar {
+  background: var(--bone-050, #FBF8F3);
+  padding: 32px 36px;
+  gap: 28px;
+  border-left: 1px solid var(--line);
+  position: relative;
+}
+
+.wm-sidebar::before {
+  content: '';
+  position: absolute;
+  top: 32px;
+  right: 36px;
+  width: 24px;
+  height: 1px;
+  background: var(--water-700);
+}
+
+.wm-sidebar .wm-side-kicker {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--water-700);
+  padding-right: 36px;
+  margin-top: 2px;
+}
+
+.wm-sidebar .wm-side-title {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-top: 8px;
+}
+
+.wm-sidebar .wm-side-title em {
+  font-style: italic;
+  color: var(--water-800);
+}
+
+.wm-description {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--muted-ink);
+  font-style: italic;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 18px;
+}
+
+.wm-sidebar h3 {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--water-700);
+  font-weight: 700;
+}
+
+.wm-questions li {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 17px;
+  line-height: 1.35;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+.wm-questions li .wm-q-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--water-500);
+  min-width: 22px;
+  padding-top: 4px;
+  font-weight: 500;
+}
+
+/* Add form — elegant */
+.wm-add {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+}
+
+.wm-add textarea {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 15px;
+  line-height: 1.5;
+  border: 1px solid var(--line);
+  padding: 12px 14px;
+  background: var(--paper);
+  min-height: 72px;
+}
+.wm-add textarea::placeholder {
+  font-style: italic;
+  color: var(--muted-ink);
+}
+.wm-add textarea:focus {
+  border-color: var(--water-700);
+  outline: 2px solid rgba(15, 74, 120, 0.08);
+  outline-offset: -1px;
+}
+
+.wm-depth-toggle {
+  border: 1px solid var(--line);
+}
+.wm-depth-toggle button {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 10px 8px;
+  transition: all 0.15s;
+}
+.wm-depth-toggle button span.wm-dsymbol {
+  font-family: 'IBM Plex Mono', monospace;
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+/* Lanes — true beauty */
+.wm-lane {
+  padding: 28px 36px;
+  position: relative;
+}
+
+.wm-lane.float {
+  background:
+    linear-gradient(180deg, var(--water-050) 0%, var(--bone-050, #FBF8F3) 100%);
+  border-bottom: 1px solid var(--line);
+}
+
+.wm-lane.deep {
+  background: var(--water-900);
+  color: var(--paper);
+  position: relative;
+  overflow: hidden;
+}
+
+.wm-lane.deep::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 400px 80px at 20% 30%, rgba(123, 170, 194, 0.12), transparent 70%),
+    radial-gradient(ellipse 500px 100px at 80% 70%, rgba(45, 111, 148, 0.18), transparent 70%);
+  mix-blend-mode: screen;
+  animation: ed-caustics 18s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.wm-lane.deep > * { position: relative; z-index: 1; }
+
+.wm-lane-head {
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.wm-lane.deep .wm-lane-head {
+  border-bottom-color: rgba(255, 255, 255, 0.15);
+}
+
+.wm-lane-head h2 {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+}
+.wm-lane-head em {
+  font-style: italic;
+}
+
+.wm-lane-kicker {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+.wm-lane-kicker::before {
+  content: '';
+  width: 20px;
+  height: 1px;
+  background: currentColor;
+}
+.wm-lane.float .wm-lane-kicker { color: var(--water-700); }
+.wm-lane.deep .wm-lane-kicker { color: var(--water-300); }
+
+.wm-lane-count {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  margin-right: auto;
+  align-self: flex-end;
+}
+
+/* Notes — editorial rows with serif body */
+.wm-notes {
+  gap: 6px;
+}
+
+.wm-note {
+  padding: 12px 14px;
+  border-radius: 3px;
+  gap: 14px;
+  transition: background 0.2s, padding 0.2s;
+  align-items: flex-start;
+}
+.wm-note:hover {
+  background: rgba(10, 53, 86, 0.05);
+  padding-right: 18px;
+}
+.wm-lane.deep .wm-note:hover {
+  background: rgba(255, 255, 255, 0.05);
+  padding-right: 18px;
+}
+
+.wm-note-bullet {
+  width: 12px;
+  height: 12px;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+.wm-note-bullet.float {
+  background: var(--water-100);
+  border: 1.5px solid var(--water-500);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.wm-note-bullet.deep {
+  background: var(--water-500);
+  border: 1.5px solid var(--water-300);
+}
+
+.wm-note-body {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+.wm-note-author {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-right: 10px;
+  opacity: 0.55;
+  font-weight: 400;
+}
+
+.wm-note-action {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 11px;
+  transition: all 0.15s;
+}
+
+.wm-empty {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 16px;
+  font-style: italic;
+  padding: 40px 20px;
+  text-align: center;
+  opacity: 0.5;
+}
