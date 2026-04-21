@@ -262,20 +262,41 @@ export default function WorkshopGrid() {
             ומה שנרצה לחקור.
           </p>
           <div className="ed-col-legend ed-reveal ed-reveal-d2">
+            <div></div>
             <div>עבר · שורש</div>
             <div>הווה · עוגן</div>
             <div>עתיד · יעד</div>
           </div>
           <div className="ed-pool-wrap ed-reveal ed-reveal-d3">
             <div className="ed-pool-grid">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => {
+              {/* TRIZ matrix: rows × cols (in RTL: row label on right, then past/present/future) */}
+              {[
+                {
+                  label: challenge?.super_system_name || 'מערכת-על',
+                  wins: [4, 3, 7],
+                },
+                {
+                  label: challenge?.system_name || 'מערכת',
+                  wins: [5, 1, 9],
+                },
+                {
+                  label: challenge?.sub_system_name || 'תת-מערכת',
+                  wins: [6, 2, 8],
+                },
+              ].flatMap((row) => [
+                <div key={`label-${row.label}`} className="ed-row-label">
+                  {row.label}
+                </div>,
+                ...row.wins.map((n) => n),
+              ]).map((item) => {
+                if (typeof item !== 'number') return item
+                const n = item
                 const win = WINDOWS.find((w) => w.number === n)!
                 const c = counts[n] || { floating: 0, deep: 0, total: 0 }
-                const maxF = Math.min(c.floating, 10)
-                const maxD = Math.min(c.deep, 10)
+                const maxF = Math.min(c.floating, 8)
+                const maxD = Math.min(c.deep, 8)
                 const isNext = n === nextStep
                 const isActive = c.total > 0
-                const snippets = (windowNotes[n] || []).slice(0, 2)
                 return (
                   <div
                     key={n}
@@ -296,24 +317,18 @@ export default function WorkshopGrid() {
                       {String(n).padStart(2, '0')}
                     </span>
                     <span className="ed-w-label">
-                      {win.systemLevel === 'super'
-                        ? 'מערכת-על'
-                        : win.systemLevel === 'system'
-                          ? 'מערכת'
-                          : 'תת-מערכת'}{' '}
-                      ·{' '}
                       {win.timeFrame === 'past'
                         ? 'עבר'
                         : win.timeFrame === 'present'
                           ? 'הווה'
                           : 'עתיד'}
                     </span>
+                    <span className="ed-w-title">{win.title}</span>
                     <span className="ed-w-count">
                       {isNext && !isActive
                         ? 'צללו לכאן →'
-                        : `${c.total} נקודות · ${c.floating}↑ ${c.deep}↓`}
+                        : `${c.floating}↑  ${c.deep}↓`}
                     </span>
-                    <span className="ed-w-title">{win.title}</span>
                     <div className="ed-win-floor"></div>
                     <div className="ed-stones">
                       {Array.from({ length: maxF }).map((_, i) => {
@@ -323,8 +338,8 @@ export default function WorkshopGrid() {
                             key={`f-${i}`}
                             className="ed-stone float"
                             style={{
-                              left: r(6, 92) + '%',
-                              top: r(4, 18) + '%',
+                              left: r(8, 92) + '%',
+                              top: r(22, 32) + '%',
                               width: sz,
                               height: sz,
                               animationDelay: r(0, 2) + 's',
@@ -339,8 +354,8 @@ export default function WorkshopGrid() {
                             key={`d-${i}`}
                             className="ed-stone deep"
                             style={{
-                              left: r(6, 92) + '%',
-                              top: r(45, 88) + '%',
+                              left: r(8, 92) + '%',
+                              top: r(48, 85) + '%',
                               width: sz,
                               height: sz,
                             }}
@@ -348,38 +363,6 @@ export default function WorkshopGrid() {
                         )
                       })}
                     </div>
-                    {/* Snippet preview on empty bg */}
-                    {snippets.length > 0 && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          left: 16,
-                          right: 16,
-                          top: '38%',
-                          fontSize: 11,
-                          lineHeight: 1.35,
-                          color: 'rgba(255,255,255,0.75)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 4,
-                          pointerEvents: 'none',
-                        }}
-                      >
-                        {snippets.map((s, i) => (
-                          <div
-                            key={i}
-                            style={{
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {s.depth === 'floating' ? '~ ' : '// '}
-                            {s.content}
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 )
               })}

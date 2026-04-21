@@ -216,26 +216,54 @@ export default function ChallengePage() {
             שאלות לחקור. סיכום כל הקבוצות.
           </p>
           <div className="ed-col-legend ed-reveal ed-reveal-d2">
+            <div></div>
             <div>עבר · שורש</div>
             <div>הווה · עוגן</div>
             <div>עתיד · יעד</div>
           </div>
           <div className="ed-pool-wrap ed-reveal ed-reveal-d3">
             <div className="ed-pool-grid">
-              {windowAggs.map((agg) => {
-                const win = WINDOWS.find((w) => w.number === agg.n)
-                const maxFloat = Math.min(agg.floating, 10)
-                const maxDeep = Math.min(agg.deep, 10)
+              {/* TRIZ matrix with row labels (challenge-specific) */}
+              {[
+                {
+                  label: challenge?.super_system_name || 'מערכת-על',
+                  wins: [4, 3, 7],
+                },
+                {
+                  label: challenge?.system_name || 'מערכת',
+                  wins: [5, 1, 9],
+                },
+                {
+                  label: challenge?.sub_system_name || 'תת-מערכת',
+                  wins: [6, 2, 8],
+                },
+              ]
+                .flatMap((row) => [
+                  <div key={`label-${row.label}`} className="ed-row-label">
+                    {row.label}
+                  </div>,
+                  ...row.wins.map((n) => n),
+                ])
+                .map((item) => {
+                  if (typeof item !== 'number') return item
+                  const n = item
+                const agg = windowAggs.find((a) => a.n === n) || {
+                  n,
+                  floating: 0,
+                  deep: 0,
+                }
+                const win = WINDOWS.find((w) => w.number === n)
+                const maxFloat = Math.min(agg.floating, 8)
+                const maxDeep = Math.min(agg.deep, 8)
                 const isActive = agg.floating + agg.deep > 0
                 return (
                   <div
-                    key={agg.n}
+                    key={n}
                     className={`ed-win ${isActive ? 'active' : ''}`}
                     onClick={() => {
-                      // Navigate to first group's window, or stay put if no groups
                       if (groups[0]) {
                         router.push(
-                          `/workshop/${groups[0].id}/window/${agg.n}`,
+                          `/workshop/${groups[0].id}/window/${n}`,
                         )
                       }
                     }}
@@ -243,16 +271,22 @@ export default function ChallengePage() {
                     tabIndex={0}
                   >
                     <div className="ed-win-waterline"></div>
-                    <span className="ed-w-num">{String(agg.n).padStart(2, '0')}</span>
+                    <span className="ed-w-num">
+                      {String(n).padStart(2, '0')}
+                    </span>
                     <span className="ed-w-label">
                       {win
-                        ? `${win.systemLevel === 'super' ? 'מערכת-על' : win.systemLevel === 'system' ? 'מערכת' : 'תת-מערכת'} · ${win.timeFrame === 'past' ? 'עבר' : win.timeFrame === 'present' ? 'הווה' : 'עתיד'}`
+                        ? win.timeFrame === 'past'
+                          ? 'עבר'
+                          : win.timeFrame === 'present'
+                            ? 'הווה'
+                            : 'עתיד'
                         : ''}
                     </span>
-                    <span className="ed-w-count">
-                      {agg.floating + agg.deep} נקודות · {agg.floating}↑ {agg.deep}↓
-                    </span>
                     <span className="ed-w-title">{win?.title || ''}</span>
+                    <span className="ed-w-count">
+                      {agg.floating}↑ {agg.deep}↓
+                    </span>
                     <div className="ed-win-floor"></div>
                     <div className="ed-stones">
                       {Array.from({ length: maxFloat }).map((_, i) => {
@@ -262,8 +296,8 @@ export default function ChallengePage() {
                             key={`f-${i}`}
                             className="ed-stone float"
                             style={{
-                              left: r(6, 92) + '%',
-                              top: r(4, 18) + '%',
+                              left: r(8, 92) + '%',
+                              top: r(22, 32) + '%',
                               width: sz,
                               height: sz,
                               animationDelay: r(0, 2) + 's',
@@ -278,8 +312,8 @@ export default function ChallengePage() {
                             key={`d-${i}`}
                             className="ed-stone deep"
                             style={{
-                              left: r(6, 92) + '%',
-                              top: r(45, 88) + '%',
+                              left: r(8, 92) + '%',
+                              top: r(48, 85) + '%',
                               width: sz,
                               height: sz,
                             }}

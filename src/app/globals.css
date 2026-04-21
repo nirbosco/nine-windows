@@ -1427,21 +1427,34 @@ body {
 }
 .ed-pool-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 120px repeat(3, 1fr);
   gap: 1px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.ed-pool-grid .ed-row-label {
+  background: var(--water-900);
+  color: var(--water-300);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 24px 12px;
+  text-align: center;
+  min-height: 340px;
 }
 .ed-win {
   background: linear-gradient(
     180deg,
     #0F2A3D 0%,
-    #0F2A3D 22%,
-    #1E4C68 23%,
-    #0F3554 55%,
+    #0F2A3D 35%,
+    #1E4C68 36%,
+    #0F3554 65%,
     #051F30 100%
   );
-  min-height: 280px;
+  min-height: 340px;
   position: relative;
   overflow: hidden;
   cursor: pointer;
@@ -1457,9 +1470,9 @@ body {
   background: linear-gradient(
     180deg,
     #1A3F5C 0%,
-    #1A3F5C 22%,
-    #2D6F94 23%,
-    #1A4A6F 55%,
+    #1A3F5C 35%,
+    #2D6F94 36%,
+    #1A4A6F 65%,
     #0A3556 100%
   );
 }
@@ -1467,7 +1480,7 @@ body {
   position: absolute;
   left: 0;
   right: 0;
-  top: 22%;
+  top: 35%;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(214, 228, 236, 0.6), transparent);
   animation: ed-shimmer 3s ease-in-out infinite;
@@ -1491,29 +1504,35 @@ body {
 }
 .ed-win .ed-w-num {
   position: absolute;
-  top: 12px;
+  top: 14px;
   left: 18px;
   font-family: 'Frank Ruhl Libre', serif;
-  font-size: 20px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 22px;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1;
 }
 .ed-win .ed-w-count {
   position: absolute;
-  bottom: 18px;
+  bottom: 14px;
   left: 18px;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.7);
+  z-index: 3;
 }
 .ed-win .ed-w-title {
   position: absolute;
-  bottom: 18px;
+  top: 50px;
   right: 18px;
+  left: 18px;
   font-family: 'Frank Ruhl Libre', serif;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
-  max-width: 60%;
-  line-height: 1.3;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  color: var(--paper);
+  z-index: 3;
+  text-align: right;
 }
 .ed-win .ed-stones {
   position: absolute;
@@ -1535,7 +1554,7 @@ body {
 }
 .ed-col-legend {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 120px repeat(3, 1fr);
   gap: 1px;
   max-width: 1440px;
   margin: 0 auto 12px;
@@ -1543,6 +1562,10 @@ body {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.5);
+}
+.ed-col-legend > div {
+  text-align: center;
+  padding: 8px 0;
 }
 
 /* Groups list */
