@@ -202,10 +202,25 @@ export default function WorkshopGrid() {
     <main className="wm-root">
       {/* Top bar — editorial, dense */}
       <div className="wm-topbar">
+        <button
+          className="wm-btn wm-btn-back"
+          onClick={() =>
+            router.push(challenge ? `/challenge/${challenge.id}` : '/')
+          }
+          title="חזרה לאתגר"
+        >
+          ← חזרה
+        </button>
+
         <div className="wm-topbar-identity">
-          <span className="wm-kicker">
-            {challenge?.name || 'אתגר'}
-          </span>
+          {challenge && (
+            <a
+              href={`/challenge/${challenge.id}`}
+              className="wm-kicker wm-kicker-link"
+            >
+              {challenge.name}
+            </a>
+          )}
           <span className="wm-title">
             קבוצת <em>{group?.name}.</em>
           </span>
@@ -292,9 +307,18 @@ export default function WorkshopGrid() {
       <div className="wm-grid-body">
         <div className="wm-col-legend">
           <div></div>
-          <div>עבר · שורש</div>
-          <div>הווה · עוגן</div>
-          <div>עתיד · יעד</div>
+          <div>
+            עבר
+            <small>שורש</small>
+          </div>
+          <div>
+            הווה
+            <small>עוגן</small>
+          </div>
+          <div>
+            עתיד
+            <small>יעד</small>
+          </div>
         </div>
         <div className="wm-pool">
           {rows.flatMap((row) => [

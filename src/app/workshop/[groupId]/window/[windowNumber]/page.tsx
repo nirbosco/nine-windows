@@ -150,9 +150,31 @@ export default function WindowDetail() {
     <main className="wm-root">
       {/* Top bar */}
       <div className="wm-topbar">
+        <button
+          className="wm-btn wm-btn-back"
+          onClick={() => router.push(`/workshop/${groupId}`)}
+          title="חזרה לבריכה"
+        >
+          ← לבריכה
+        </button>
+
         <div className="wm-topbar-identity">
           <span className="wm-kicker">
-            {challenge?.name} · {group?.name}
+            {challenge && (
+              <a
+                href={`/challenge/${challenge.id}`}
+                className="wm-kicker-link"
+              >
+                {challenge.name}
+              </a>
+            )}
+            {challenge && ' · '}
+            <a
+              href={`/workshop/${groupId}`}
+              className="wm-kicker-link"
+            >
+              {group?.name}
+            </a>
           </span>
           <span className="wm-title">
             חלון {String(winNum).padStart(2, '0')} ·{' '}
@@ -166,12 +188,6 @@ export default function WindowDetail() {
 
         <div className="wm-spacer" />
 
-        <button
-          className="wm-btn"
-          onClick={() => router.push(`/workshop/${groupId}`)}
-        >
-          ← לבריכה
-        </button>
         {winNum > 1 && (
           <button
             className="wm-btn"
