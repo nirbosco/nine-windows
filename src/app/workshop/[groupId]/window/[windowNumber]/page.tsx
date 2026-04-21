@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { WINDOWS } from '@/lib/windows-data'
 import { Note, Depth, GroupMember, Challenge, Group } from '@/lib/types'
+import { loadWindows, loadLabels, L, DEFAULT_LABELS } from '@/lib/content'
+import type { WindowData } from '@/lib/windows-data'
 
 export default function WindowDetail() {
   const { groupId, windowNumber } = useParams<{
@@ -13,8 +15,11 @@ export default function WindowDetail() {
   }>()
   const router = useRouter()
   const winNum = parseInt(windowNumber, 10)
-  const win = WINDOWS.find((w) => w.number === winNum)!
 
+  const [win, setWin] = useState<WindowData>(
+    WINDOWS.find((w) => w.number === winNum)!,
+  )
+  const [labels, setLabels] = useState<Record<string, string>>(DEFAULT_LABELS)
   const [notes, setNotes] = useState<Note[]>([])
   const [members, setMembers] = useState<GroupMember[]>([])
   const [group, setGroup] = useState<Group | null>(null)
@@ -40,6 +45,15 @@ export default function WindowDetail() {
 
   useEffect(() => {
     async function load() {
+      // Load editable content
+      const [allWindows, lbls] = await Promise.all([
+        loadWindows(),
+        loadLabels(),
+      ])
+      const updated = allWindows.find((w) => w.number === winNum)
+      if (updated) setWin(updated)
+      setLabels(lbls)
+
       await loadNotes()
 
       const { data: m } = await supabase
@@ -250,19 +264,21 @@ export default function WindowDetail() {
 
           {/* Add note */}
           <div className="wm-add">
-            <h3>הוסיפו נקודה</h3>
+            <h3>{L(labels, 'cta_add_point')}</h3>
             <div className="wm-depth-toggle">
               <button
                 className={`float ${depth === 'floating' ? 'on' : ''}`}
                 onClick={() => setDepth('floating')}
               >
-                ~ צף · יודעים
+                ~ {L(labels, 'depth_floating_label')} ·{' '}
+                {L(labels, 'depth_floating_tagline').split(' ').slice(0, 2).join(' ')}
               </button>
               <button
                 className={`deep ${depth === 'deep' ? 'on' : ''}`}
                 onClick={() => setDepth('deep')}
               >
-                ↓ שקוע · לחקור
+                ↓ {L(labels, 'depth_deep_label')} ·{' '}
+                {L(labels, 'depth_deep_tagline').split(' ').slice(0, 2).join(' ')}
               </button>
             </div>
             <textarea
@@ -270,8 +286,8 @@ export default function WindowDetail() {
               onChange={(e) => setNoteContent(e.target.value)}
               placeholder={
                 depth === 'floating'
-                  ? 'מה אתם יודעים? מה עולה?'
-                  : 'מה השאלה? מה לחקור?'
+                  ? L(labels, 'placeholder_floating')
+                  : L(labels, 'placeholder_deep')
               }
               rows={3}
               onKeyDown={(e) => {
@@ -326,11 +342,13 @@ export default function WindowDetail() {
           <div className="wm-lane float">
             <div className="wm-lane-head">
               <div style={{ flex: 1 }}>
-                <div className="wm-lane-kicker">01 · פני המים</div>
+                <div className="wm-lane-kicker">
+                  {L(labels, 'lane_float_kicker')}
+                </div>
                 <h2>
-                  צף —{' '}
+                  {L(labels, 'depth_floating_label')} —{' '}
                   <em style={{ color: 'var(--water-500)' }}>
-                    מה שכבר גלוי לנו
+                    {L(labels, 'depth_floating_tagline')}
                   </em>
                 </h2>
               </div>
@@ -342,7 +360,7 @@ export default function WindowDetail() {
             </div>
             {floating.length === 0 ? (
               <p className="wm-empty">
-                פני המים שקטים. התחילו מצד ימין.
+                {L(labels, 'empty_floating')}
               </p>
             ) : (
               <ul className="wm-notes">
@@ -374,11 +392,13 @@ export default function WindowDetail() {
           <div className="wm-lane deep">
             <div className="wm-lane-head">
               <div style={{ flex: 1 }}>
-                <div className="wm-lane-kicker">02 · עומק הבריכה</div>
+                <div className="wm-lane-kicker">
+                  {L(labels, 'lane_deep_kicker')}
+                </div>
                 <h2>
-                  שקוע —{' '}
+                  {L(labels, 'depth_deep_label')} —{' '}
                   <em style={{ color: 'var(--water-300)' }}>
-                    מה שצריך לחקור
+                    {L(labels, 'depth_deep_tagline')}
                   </em>
                 </h2>
               </div>
@@ -387,10 +407,7 @@ export default function WindowDetail() {
               </span>
             </div>
             {deep.length === 0 ? (
-              <p className="wm-empty">
-                עדיין אין כאן נקודות שקועות. החליפו את הבורר ל-&quot;שקוע&quot;
-                כדי להוסיף.
-              </p>
+              <p className="wm-empty">{L(labels, 'empty_deep')}</p>
             ) : (
               <ul className="wm-notes">
                 {deep.map((note) => (

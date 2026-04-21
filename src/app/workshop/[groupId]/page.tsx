@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { WINDOWS } from '@/lib/windows-data'
+import { WINDOWS as DEFAULT_WINDOWS, WindowData } from '@/lib/windows-data'
 import { Challenge, Group, Depth } from '@/lib/types'
+import { loadWindows, loadLabels, L, DEFAULT_LABELS } from '@/lib/content'
 
 type WindowCounts = Record<number, { floating: number; deep: number; total: number }>
 type WindowNotes = Record<number, {
@@ -19,6 +20,8 @@ export default function WorkshopGrid() {
   const [challenge, setChallenge] = useState<Challenge | null>(null)
   const [counts, setCounts] = useState<WindowCounts>({})
   const [windowNotes, setWindowNotes] = useState<WindowNotes>({})
+  const [WINDOWS, setWINDOWS] = useState<WindowData[]>(DEFAULT_WINDOWS)
+  const [labels, setLabels] = useState<Record<string, string>>(DEFAULT_LABELS)
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [notebookUrl, setNotebookUrl] = useState<string | null>(null)
@@ -30,6 +33,11 @@ export default function WorkshopGrid() {
 
   useEffect(() => {
     async function load() {
+      // Load editable content in parallel
+      const [ws, lbls] = await Promise.all([loadWindows(), loadLabels()])
+      setWINDOWS(ws)
+      setLabels(lbls)
+
       const { data: g } = await supabase
         .from('groups')
         .select('*')
@@ -382,7 +390,7 @@ export default function WorkshopGrid() {
                           {note && (
                             <div className="wm-stone-tip">
                               <span className="wm-stone-tip-depth">
-                                ~ צף · חלון {n}
+                                ~ {L(labels, 'depth_floating_label')} · חלון {n}
                               </span>
                               {note.content}
                               {note.author_name && (
@@ -418,7 +426,7 @@ export default function WorkshopGrid() {
                           {note && (
                             <div className="wm-stone-tip">
                               <span className="wm-stone-tip-depth">
-                                ↓ שקוע · חלון {n}
+                                ↓ {L(labels, 'depth_deep_label')} · חלון {n}
                               </span>
                               {note.content}
                               {note.author_name && (
@@ -434,7 +442,9 @@ export default function WorkshopGrid() {
                   </div>
                   <div className="wm-tile-footer">
                     {isNext && !isActive ? (
-                      <span className="wm-dive-cta">כאן מתחילים ←</span>
+                      <span className="wm-dive-cta">
+                        {L(labels, 'cta_dive_here')}
+                      </span>
                     ) : (
                       <span>
                         {c.floating}↑ &nbsp; {c.deep}↓

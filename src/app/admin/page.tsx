@@ -286,12 +286,22 @@ export default function AdminPage() {
         >
           פיד חי
         </button>
-        <button
-          style={{ marginRight: 'auto' }}
-          onClick={handleExportAll}
+        <a
+          href="/admin/content"
+          style={{
+            marginRight: 'auto',
+            padding: '18px 28px',
+            fontFamily: "'Heebo', sans-serif",
+            fontSize: 14,
+            fontWeight: 500,
+            color: 'var(--water-700)',
+            textDecoration: 'none',
+            letterSpacing: 0,
+          }}
         >
-          ייצוא הכל
-        </button>
+          עריכת תוכן ←
+        </a>
+        <button onClick={handleExportAll}>ייצוא הכל</button>
       </div>
 
       {/* Pools view */}
