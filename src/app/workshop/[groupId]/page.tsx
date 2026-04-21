@@ -133,7 +133,7 @@ export default function WorkshopGrid() {
         })
       }
       if (deep.length > 0) {
-        text += 'צולל:\n'
+        text += 'שקוע (מה שצריך לחקור):\n'
         deep.forEach((n: { content: string; author_name?: string }) => {
           text += `  * ${n.content}${n.author_name ? ` (${n.author_name})` : ''}\n`
         })
@@ -245,7 +245,7 @@ export default function WorkshopGrid() {
           onClick={handleSync}
           disabled={syncing}
         >
-          {syncing ? 'מסנכרן...' : 'NotebookLM'}
+          {syncing ? 'מעלה...' : 'העלו ל-NotebookLM'}
         </button>
         {notebookUrl && (
           <a
@@ -275,7 +275,7 @@ export default function WorkshopGrid() {
         >
           <span>
             {syncResult.success
-              ? 'סונכרן בהצלחה'
+              ? 'הועלה בהצלחה'
               : `שגיאה: ${syncResult.error}`}
           </span>
           {syncResult.success && syncResult.notebook_url && (
@@ -418,7 +418,7 @@ export default function WorkshopGrid() {
                           {note && (
                             <div className="wm-stone-tip">
                               <span className="wm-stone-tip-depth">
-                                // צולל · חלון {n}
+                                ↓ שקוע · חלון {n}
                               </span>
                               {note.content}
                               {note.author_name && (
@@ -434,7 +434,7 @@ export default function WorkshopGrid() {
                   </div>
                   <div className="wm-tile-footer">
                     {isNext && !isActive ? (
-                      <span className="wm-dive-cta">צללו לכאן ←</span>
+                      <span className="wm-dive-cta">כאן מתחילים ←</span>
                     ) : (
                       <span>
                         {c.floating}↑ &nbsp; {c.deep}↓

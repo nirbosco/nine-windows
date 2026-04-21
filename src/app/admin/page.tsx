@@ -113,7 +113,7 @@ export default function AdminPage() {
         text += '\n'
       }
       if (deep.length > 0) {
-        text += 'צולל:\n'
+        text += 'שקוע:\n'
         deep.forEach((n) => {
           text += `  * ${n.content}${n.author_name ? ` (${n.author_name})` : ''}\n`
         })
@@ -242,7 +242,7 @@ export default function AdminPage() {
             </div>
             <div>
               <div className="ed-num">{totalDeep}</div>
-              <div className="ed-lbl">צולל</div>
+              <div className="ed-lbl">שקוע</div>
             </div>
             <div>
               <div className="ed-num">
@@ -369,7 +369,7 @@ export default function AdminPage() {
                     </div>
                     <div>
                       <b>{deep.length}</b>
-                      <span>צולל</span>
+                      <span>שקוע</span>
                     </div>
                   </div>
                 </div>
@@ -480,7 +480,7 @@ export default function AdminPage() {
                       <span
                         className={`ed-tag ${note.depth === 'floating' ? 'float' : 'sink'}`}
                       >
-                        {note.depth === 'floating' ? 'צף' : 'צולל'}
+                        {note.depth === 'floating' ? 'צף' : 'שקוע'}
                       </span>
                     </div>
                   </div>

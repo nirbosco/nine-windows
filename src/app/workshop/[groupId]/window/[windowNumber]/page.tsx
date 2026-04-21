@@ -262,7 +262,7 @@ export default function WindowDetail() {
                 className={`deep ${depth === 'deep' ? 'on' : ''}`}
                 onClick={() => setDepth('deep')}
               >
-                // צולל · שאלה
+                ↓ שקוע · לחקור
               </button>
             </div>
             <textarea
@@ -326,11 +326,11 @@ export default function WindowDetail() {
           <div className="wm-lane float">
             <div className="wm-lane-head">
               <div style={{ flex: 1 }}>
-                <div className="wm-lane-kicker">01 · על פני השטח</div>
+                <div className="wm-lane-kicker">01 · פני המים</div>
                 <h2>
                   צף —{' '}
                   <em style={{ color: 'var(--water-500)' }}>
-                    דברים שאנחנו יודעים
+                    מה שכבר גלוי לנו
                   </em>
                 </h2>
               </div>
@@ -342,7 +342,7 @@ export default function WindowDetail() {
             </div>
             {floating.length === 0 ? (
               <p className="wm-empty">
-                עדיין אין כלום שצף בחלון הזה. התחילו מצד ימין.
+                פני המים שקטים. התחילו מצד ימין.
               </p>
             ) : (
               <ul className="wm-notes">
@@ -374,11 +374,11 @@ export default function WindowDetail() {
           <div className="wm-lane deep">
             <div className="wm-lane-head">
               <div style={{ flex: 1 }}>
-                <div className="wm-lane-kicker">02 · בתחתית</div>
+                <div className="wm-lane-kicker">02 · עומק הבריכה</div>
                 <h2>
-                  צולל —{' '}
+                  שקוע —{' '}
                   <em style={{ color: 'var(--water-300)' }}>
-                    שאלות לצלול אליהן
+                    מה שצריך לחקור
                   </em>
                 </h2>
               </div>
@@ -388,8 +388,8 @@ export default function WindowDetail() {
             </div>
             {deep.length === 0 ? (
               <p className="wm-empty">
-                עדיין לא צללנו. החליפו את הבורר ל-&quot;צולל&quot; והוסיפו
-                שאלה.
+                עדיין אין כאן נקודות שקועות. החליפו את הבורר ל-&quot;שקוע&quot;
+                כדי להוסיף.
               </p>
             ) : (
               <ul className="wm-notes">
@@ -495,7 +495,7 @@ function NoteRow({
         <button
           className="wm-note-action"
           onClick={onToggleDepth}
-          title={note.depth === 'floating' ? 'העבר לצולל' : 'העבר לצף'}
+          title={note.depth === 'floating' ? 'העבר לשקוע' : 'העבר לצף'}
         >
           {note.depth === 'floating' ? '↓' : '↑'}
         </button>

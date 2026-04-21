@@ -212,8 +212,8 @@ export default function ChallengePage() {
             תשעה חלונות. <em className="ed-em">בריכה אחת.</em>
           </h2>
           <p className="ed-mp-sub ed-reveal ed-reveal-d2">
-            כל חלון הוא חתך של הבריכה. מה שצף — דברים שיודעים. מה שצולל —
-            שאלות לחקור. סיכום כל הקבוצות.
+            כל חלון הוא חתך של בריכת הידע. מה שצף — מה שכבר גלוי לנו. מה
+            ששקוע — מה שצריך לחקור. סיכום כל הקבוצות.
           </p>
           <div className="ed-col-legend ed-reveal ed-reveal-d2">
             <div></div>
@@ -528,7 +528,7 @@ export default function ChallengePage() {
                     disabled={!groupName.trim() || creating}
                     className="ed-btn-line dark"
                   >
-                    {creating ? 'יוצר...' : 'צרו קבוצה וצללו'}
+                    {creating ? 'יוצר...' : 'צרו קבוצה'}
                   </button>
                   <button
                     onClick={() => setShowCreate(false)}

@@ -45,8 +45,8 @@ export const DEPTH_CONFIG: Record<Depth, { label: string; icon: string; bgClass:
     dotClass: 'bg-cyan-400',
   },
   deep: {
-    label: 'צולל',
-    icon: '\/\/',
+    label: 'שקוע',
+    icon: '↓',
     bgClass: 'bg-indigo-50',
     borderClass: 'border-indigo-300',
     textClass: 'text-indigo-900',

@@ -146,7 +146,7 @@ export default function SharedPoolPage() {
           className={`ed-pill ${filterDepth === 'all' ? 'on' : ''}`}
           onClick={() => setFilterDepth('all')}
         >
-          צף + צולל
+          צף + שקוע
         </button>
         <button
           className={`ed-pill ${filterDepth === 'floating' ? 'on' : ''}`}
@@ -158,7 +158,7 @@ export default function SharedPoolPage() {
           className={`ed-pill ${filterDepth === 'deep' ? 'on' : ''}`}
           onClick={() => setFilterDepth('deep')}
         >
-          רק צולל
+          רק שקוע
         </button>
       </div>
 
@@ -225,7 +225,7 @@ export default function SharedPoolPage() {
                         <span
                           className={`ed-type ${n.depth === 'floating' ? 'float' : 'sink'}`}
                         >
-                          {n.depth === 'floating' ? 'צף' : 'צולל'}
+                          {n.depth === 'floating' ? 'צף' : 'שקוע'}
                         </span>
                       </div>
                       <p>

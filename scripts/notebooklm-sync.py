@@ -46,8 +46,8 @@ WINDOWS = [
 ]
 
 DEPTH_LABELS = {
-    "floating": "צף — על פני השטח",
-    "deep": "צולל — לעומק",
+    "floating": "צף — מה שכבר גלוי לנו",
+    "deep": "שקוע — מה שצריך לחקור",
 }
 
 
@@ -108,7 +108,7 @@ def build_source_content(group, challenge, members, notes):
     text += f"הטבלה מאורגנת כמטריצה של 3×3:\n"
     text += f"- **שורות** = רמות מערכת: מערכת-על (סביבה רחבה), מערכת (האתגר עצמו), תת-מערכת (רכיבים פנימיים)\n"
     text += f"- **עמודות** = ממדי זמן: עבר, הווה, עתיד\n"
-    text += f"- **רמות עומק**: צף (תצפיות ראשוניות), צולל (תובנות עמוקות)\n\n"
+    text += f"- **רמות עומק**: צף (מה שכבר גלוי לנו), שקוע (מה שצריך לחקור)\n\n"
     text += f"---\n\n"
 
     for win in WINDOWS:
@@ -134,7 +134,7 @@ def build_source_content(group, challenge, members, notes):
     text += f"## סיכום כמותי\n"
     text += f"- **סה\"כ נקודות:** {len(notes)}\n"
     text += f"- **צף:** {sum(1 for n in notes if n['depth'] == 'floating')}\n"
-    text += f"- **צולל:** {sum(1 for n in notes if n['depth'] == 'deep')}\n"
+    text += f"- **שקוע:** {sum(1 for n in notes if n['depth'] == 'deep')}\n"
 
     return text
 
