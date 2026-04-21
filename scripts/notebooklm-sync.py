@@ -96,7 +96,7 @@ async def fetch_group_data(group_id):
 
 def build_source_content(group, challenge, members, notes):
     """Build structured Markdown content for NotebookLM source."""
-    text = f"# ניתוח אתגר בשיטת תשעת החלונות (TRIZ)\n\n"
+    text = f"# ניתוח אתגר בשיטת תשעת החלונות\n\n"
     text += f"## פרטי הסדנה\n"
     text += f"- **אתגר:** {challenge['name']}\n"
     text += f"- **קבוצה:** {group['name']}\n"

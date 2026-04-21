@@ -101,7 +101,7 @@ async def fetch_all_groups_for_challenge(challenge_id):
 # ── Content builder ──
 
 def build_source_content(group, challenge, members, notes):
-    text = f"# ניתוח אתגר בשיטת תשעת החלונות (TRIZ)\n\n"
+    text = f"# ניתוח אתגר בשיטת תשעת החלונות\n\n"
     text += f"## פרטי הסדנה\n"
     text += f"- **אתגר:** {challenge['name']}\n"
     text += f"- **קבוצה:** {group['name']}\n"

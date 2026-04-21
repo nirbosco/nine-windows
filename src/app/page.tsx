@@ -111,8 +111,8 @@ export default function Home() {
       </div>
 
       <footer className="mt-16 text-center text-xs text-gray-400 relative z-10 space-y-1">
-        <p>מבוסס על מודל תשעת החלונות של גנריך אלטשולר (TRIZ)</p>
-        <p>פיתוח ובנייה: ארגון חותם — אחריות על החינוך בישראל</p>
+        <p>פיתוח בהשראת טריז של מרכז הידע היישומי של חותם</p>
+        <p>ארגון חותם — אחריות על החינוך בישראל</p>
       </footer>
     </main>
   )

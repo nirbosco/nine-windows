@@ -294,8 +294,8 @@ export default function WindowDetail() {
                       {config.label}
                       <span className="block text-[10px] font-normal opacity-70 mt-0.5">
                         {d === 'floating'
-                          ? 'תצפיות ראשוניות'
-                          : 'תובנות עמוקות'}
+                          ? 'דברים שאנחנו יודעים'
+                          : 'שאלות לצלול אליהן'}
                       </span>
                     </button>
                   )
@@ -375,34 +375,33 @@ export default function WindowDetail() {
               </div>
             </div>
 
-            {notes.length === 0 ? (
-              <div className="pool-container rounded-2xl p-12 text-center min-h-[300px] flex items-center justify-center">
-                <div>
-                  <div className="text-4xl mb-3 opacity-40">~</div>
-                  <p className="text-white/80 text-lg font-medium">
-                    הבריכה ריקה
-                  </p>
-                  <p className="text-white/50 text-sm mt-1">
-                    הוסיפו את הנקודה הראשונה
-                  </p>
+            {/* The pool — always visible, notes float inside */}
+            <div>
+              {/* SHALLOW LAYER (floating notes) */}
+              <div className="pool-layer pool-layer-shallow">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-xl">~</span>
+                  <h3 className="text-sm font-bold text-cyan-900">
+                    צף — דברים שאנחנו יודעים
+                  </h3>
+                  <span className="text-xs text-cyan-700/70 mr-auto">
+                    {floatingNotes.length}
+                  </span>
                 </div>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Floating layer */}
-                {floatingNotes.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-lg">~</span>
-                      <h3 className="text-sm font-bold text-cyan-700">
-                        צף — על פני השטח
-                      </h3>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {floatingNotes.map((note) => (
+                {floatingNotes.length === 0 ? (
+                  <p className="text-center text-cyan-800/50 text-sm py-6 italic">
+                    עדיין אין כלום שצף כאן
+                  </p>
+                ) : (
+                  <div
+                    className="columns-1 sm:columns-2 gap-3"
+                    style={{ columnFill: 'balance' }}
+                  >
+                    {floatingNotes.map((note, idx) => (
+                      <div key={note.id} className="mb-3 break-inside-avoid">
                         <NoteCard
-                          key={note.id}
                           note={note}
+                          idx={idx}
                           isNew={note.id === justAdded}
                           editingId={editingId}
                           editContent={editContent}
@@ -419,36 +418,44 @@ export default function WindowDetail() {
                           }}
                           onEditChange={setEditContent}
                         />
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
                 )}
+              </div>
 
-                {/* Divider */}
-                {floatingNotes.length > 0 && deepNotes.length > 0 && (
-                  <div className="flex items-center gap-3 opacity-30">
-                    <div className="flex-1 border-t border-dashed border-gray-400" />
-                    <span className="text-xs text-gray-500">עומק</span>
-                    <div className="flex-1 border-t border-dashed border-gray-400" />
-                  </div>
-                )}
+              {/* WATER SURFACE DIVIDER */}
+              <div className="depth-divider">
+                <span className="text-xs text-cyan-900/60 font-bold tracking-wider">
+                  ~  ~  עומק  ~  ~
+                </span>
+              </div>
 
-                {/* Deep layer */}
-                {deepNotes.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-lg font-bold text-indigo-400">
-                        //
-                      </span>
-                      <h3 className="text-sm font-bold text-indigo-700">
-                        צולל — לעומק
-                      </h3>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {deepNotes.map((note) => (
+              {/* DEEP LAYER (deep notes) */}
+              <div className="pool-layer pool-layer-deep">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-xl font-bold text-white">//</span>
+                  <h3 className="text-sm font-bold text-white">
+                    צולל — שאלות לצלול אליהן
+                  </h3>
+                  <span className="text-xs text-white/70 mr-auto">
+                    {deepNotes.length}
+                  </span>
+                </div>
+                {deepNotes.length === 0 ? (
+                  <p className="text-center text-white/60 text-sm py-6 italic">
+                    עדיין לא צללנו לכאן
+                  </p>
+                ) : (
+                  <div
+                    className="columns-1 sm:columns-2 gap-3"
+                    style={{ columnFill: 'balance' }}
+                  >
+                    {deepNotes.map((note, idx) => (
+                      <div key={note.id} className="mb-3 break-inside-avoid">
                         <NoteCard
-                          key={note.id}
                           note={note}
+                          idx={idx}
                           isNew={note.id === justAdded}
                           editingId={editingId}
                           editContent={editContent}
@@ -465,12 +472,12 @@ export default function WindowDetail() {
                           }}
                           onEditChange={setEditContent}
                         />
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
@@ -523,6 +530,7 @@ export default function WindowDetail() {
 
 function NoteCard({
   note,
+  idx,
   isNew,
   editingId,
   editContent,
@@ -534,6 +542,7 @@ function NoteCard({
   onEditChange,
 }: {
   note: Note
+  idx: number
   isNew: boolean
   editingId: string | null
   editContent: string
@@ -546,10 +555,14 @@ function NoteCard({
 }) {
   const config = DEPTH_CONFIG[note.depth]
   const isEditing = editingId === note.id
+  const rotClasses = ['rot-a', 'rot-b', 'rot-c', 'rot-d', 'rot-e']
+  const rotClass = rotClasses[idx % rotClasses.length]
+  const bobDelay = `${(idx % 5) * 0.7}s`
 
   return (
     <div
-      className={`dot-card rounded-xl p-4 border-2 transition-all ${config.bgClass} ${config.borderClass} ${isNew ? 'note-enter' : ''}`}
+      className={`dot-card ${rotClass} ${note.depth === 'floating' ? 'depth-floating' : ''} rounded-2xl p-4 border-2 ${config.bgClass} ${config.borderClass} ${isNew ? 'note-enter' : ''}`}
+      style={{ ['--bob-delay' as string]: bobDelay }}
     >
       {/* Top row: depth badge + actions */}
       <div className="flex items-center justify-between mb-2">
@@ -561,7 +574,7 @@ function NoteCard({
             {config.label}
           </span>
         </div>
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity">
+        <div className="dot-actions flex gap-1">
           <button
             onClick={() => onToggleDepth(note)}
             className="w-6 h-6 rounded-md bg-white/60 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center text-[10px] cursor-pointer"

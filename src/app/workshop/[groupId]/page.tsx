@@ -31,6 +31,7 @@ const TIME_COLORS: Record<
 }
 
 type WindowCounts = Record<number, Record<Depth | 'total', number>>
+type WindowNotes = Record<number, { content: string; depth: Depth }[]>
 
 const COL_HEADERS = ['עבר', 'הווה', 'עתיד']
 
@@ -40,6 +41,7 @@ export default function WorkshopGrid() {
   const [group, setGroup] = useState<Group | null>(null)
   const [challenge, setChallenge] = useState<Challenge | null>(null)
   const [counts, setCounts] = useState<WindowCounts>({})
+  const [windowNotes, setWindowNotes] = useState<WindowNotes>({})
   const [loading, setLoading] = useState(true)
   const [guideOpen, setGuideOpen] = useState(false)
   const [syncing, setSyncing] = useState(false)
@@ -83,19 +85,26 @@ export default function WorkshopGrid() {
 
       const { data: notes } = await supabase
         .from('notes')
-        .select('window_number, depth')
+        .select('window_number, depth, content, created_at')
         .eq('group_id', groupId)
+        .order('created_at', { ascending: false })
 
       if (notes) {
         const c: WindowCounts = {}
-        notes.forEach((n: { window_number: number; depth: Depth }) => {
-          if (!c[n.window_number]) {
-            c[n.window_number] = { floating: 0, deep: 0, total: 0 }
-          }
-          c[n.window_number][n.depth]++
-          c[n.window_number].total++
-        })
+        const wn: WindowNotes = {}
+        notes.forEach(
+          (n: { window_number: number; depth: Depth; content: string }) => {
+            if (!c[n.window_number]) {
+              c[n.window_number] = { floating: 0, deep: 0, total: 0 }
+              wn[n.window_number] = []
+            }
+            c[n.window_number][n.depth]++
+            c[n.window_number].total++
+            wn[n.window_number].push({ content: n.content, depth: n.depth })
+          },
+        )
         setCounts(c)
+        setWindowNotes(wn)
       }
 
       setLoading(false)
@@ -303,9 +312,8 @@ export default function WorkshopGrid() {
                 מה זה תשעת החלונות?
               </h3>
               <p className="text-sm text-gray-600 leading-relaxed">
-                כלי חשיבה מתודולוגי מעולם ה-TRIZ של גנריך אלטשולר. טבלה של
-                3×3 — שלוש רמות מערכת כפול שלושה ממדי זמן. המטרה: להרחיב את
-                בריכת הידע על האתגר לפני שקופצים לפתרונות.
+                טבלה של 3×3 — שלוש רמות מערכת כפול שלושה ממדי זמן. המטרה:
+                להרחיב את בריכת הידע על האתגר לפני שקופצים לפתרונות.
               </p>
             </div>
 
@@ -319,7 +327,7 @@ export default function WorkshopGrid() {
                     ~ צף
                   </span>
                   <p className="text-sm text-gray-600">
-                    תצפיות ראשוניות, שאלות, דברים שצפים על פני השטח
+                    דברים שאנחנו יודעים — מה שכבר צף על פני השטח
                   </p>
                 </div>
                 <div className="flex gap-3 items-start">
@@ -327,7 +335,7 @@ export default function WorkshopGrid() {
                     // צולל
                   </span>
                   <p className="text-sm text-gray-600">
-                    תובנות עמוקות, ניתוחים, דברים שדורשים צלילה
+                    שאלות ודברים שנרצה לצלול אליהם — מה שדורש חקירה
                   </p>
                 </div>
               </div>
@@ -418,8 +426,9 @@ export default function WorkshopGrid() {
                 const wCounts = counts[wNum]
                 const total = wCounts?.total || 0
                 const isNext = wNum === nextStep
-                const isCenter = wNum === 1
                 const timeColors = TIME_COLORS[win.timeFrame]
+                const tileNotes = windowNotes[wNum] || []
+                const snippets = tileNotes.slice(0, 3)
 
                 return (
                   <button
@@ -427,20 +436,20 @@ export default function WorkshopGrid() {
                     onClick={() =>
                       router.push(`/workshop/${groupId}/window/${wNum}`)
                     }
-                    className={`pool-tile rounded-2xl p-4 cursor-pointer text-right ${
-                      isCenter ? 'ring-2 ring-white/40 shadow-lg' : ''
-                    } ${isNext ? 'ripple-active' : ''}`}
+                    className={`pool-tile rounded-2xl p-4 cursor-pointer text-right min-h-[140px] flex flex-col ${
+                      isNext ? 'next-tile' : ''
+                    }`}
                     style={{
                       background:
                         total > 0
-                          ? `linear-gradient(145deg, rgba(255,255,255,0.9), ${timeColors.bg})`
+                          ? `linear-gradient(145deg, rgba(255,255,255,0.92), ${timeColors.bg})`
                           : 'rgba(255,255,255,0.75)',
                     }}
                   >
-                    {/* Step number badge */}
+                    {/* Step number badge + count */}
                     <div className="flex items-center justify-between mb-2">
                       <span
-                        className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-all"
+                        className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-all shrink-0"
                         style={{
                           background:
                             total > 0
@@ -458,18 +467,24 @@ export default function WorkshopGrid() {
                         {wNum}
                       </span>
                       {total > 0 && (
-                        <span
-                          className="text-[10px] font-medium"
-                          style={{ color: timeColors.text }}
-                        >
-                          {total} נקודות
-                        </span>
+                        <div className="flex gap-1">
+                          {wCounts.floating > 0 && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-cyan-100 text-cyan-800 border border-cyan-300">
+                              ~ {wCounts.floating}
+                            </span>
+                          )}
+                          {wCounts.deep > 0 && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800 border border-indigo-300">
+                              // {wCounts.deep}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
 
-                    {/* Title — now uses simplified question */}
+                    {/* Title */}
                     <h3
-                      className="text-xs font-semibold mb-1 line-clamp-2"
+                      className="text-xs font-semibold mb-2 line-clamp-2"
                       style={{
                         color: total > 0 ? timeColors.text : '#6B7280',
                       }}
@@ -477,31 +492,40 @@ export default function WorkshopGrid() {
                       {win.title}
                     </h3>
 
-                    {/* Depth breakdown dots */}
-                    {total > 0 && wCounts && (
-                      <div className="flex gap-1.5 mt-2">
-                        {wCounts.floating > 0 && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-cyan-50 text-cyan-700 border border-cyan-200">
-                            ~ {wCounts.floating}
-                          </span>
-                        )}
-                        {wCounts.deep > 0 && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-                            // {wCounts.deep}
-                          </span>
+                    {/* Note snippets preview */}
+                    {snippets.length > 0 && (
+                      <div className="space-y-1 mt-auto">
+                        {snippets.map((n, i) => (
+                          <div
+                            key={i}
+                            className={`text-[10px] leading-tight px-2 py-1 rounded-lg truncate ${
+                              n.depth === 'floating'
+                                ? 'bg-cyan-50/80 text-cyan-900 border border-cyan-200/60'
+                                : 'bg-indigo-50/80 text-indigo-900 border border-indigo-200/60'
+                            }`}
+                            title={n.content}
+                          >
+                            {n.depth === 'floating' ? '~ ' : '// '}
+                            {n.content}
+                          </div>
+                        ))}
+                        {tileNotes.length > 3 && (
+                          <p className="text-[9px] text-gray-500 px-2">
+                            +{tileNotes.length - 3} נוספות
+                          </p>
                         )}
                       </div>
                     )}
 
-                    {/* Next step indicator — prominent */}
+                    {/* Next step — BIG & CENTERED */}
                     {isNext && total === 0 && (
-                      <div className="mt-3">
-                        <p
-                          className="text-sm font-extrabold animate-pulse"
+                      <div className="mt-auto flex items-center justify-center pt-3">
+                        <span
+                          className="text-base font-extrabold"
                           style={{ color: timeColors.badge }}
                         >
                           צללו לכאן &larr;
-                        </p>
+                        </span>
                       </div>
                     )}
                   </button>
