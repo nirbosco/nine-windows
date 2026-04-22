@@ -1037,12 +1037,31 @@ body {
   color: var(--water-800);
   position: relative;
   z-index: 1;
+  transition:
+    background 0.7s cubic-bezier(0.2, 0.7, 0.2, 1),
+    color 0.7s cubic-bezier(0.2, 0.7, 0.2, 1),
+    border-color 0.7s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
+/* Fill dot blue when the step enters viewport */
+.ed-step.ed-reveal.in .ed-step-dot,
 .ed-step.active .ed-step-dot {
   background: var(--water-800);
   color: var(--paper);
   border-color: var(--water-800);
+  transform: scale(1.04);
+}
+
+/* Stagger the fill per step position for a rolling effect */
+.ed-step.ed-reveal:nth-of-type(2).in .ed-step-dot {
+  transition-delay: 0.1s;
+}
+.ed-step.ed-reveal:nth-of-type(3).in .ed-step-dot {
+  transition-delay: 0.2s;
+}
+.ed-step.ed-reveal:nth-of-type(4).in .ed-step-dot {
+  transition-delay: 0.3s;
 }
 
 .ed-step-body {
