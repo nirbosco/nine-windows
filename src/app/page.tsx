@@ -133,9 +133,9 @@ export default function Home() {
           {/* Eduvot logo */}
           <div className="ed-reveal" style={{ marginBottom: 48 }}>
             <img
-              src="/eduvot-logo-light.jpeg"
+              src="/eduvot-logo.png"
               alt="אדוות"
-              style={{ height: 44, display: 'block' }}
+              style={{ height: 52, display: 'block' }}
             />
           </div>
           <div className="ed-kicker ed-reveal">
@@ -615,9 +615,13 @@ export default function Home() {
         <div className="ed-end-row">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <img
-              src="/eduvot-logo-dark.jpeg"
+              src="/eduvot-logo.png"
               alt="אדוות"
-              style={{ height: 44, display: 'block', background: 'var(--paper)', padding: 6 }}
+              style={{
+                height: 48,
+                display: 'block',
+                filter: 'brightness(0) invert(1)',
+              }}
             />
             <div className="ed-brand-big">תשעת החלונות</div>
           </div>
