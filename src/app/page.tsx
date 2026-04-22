@@ -540,7 +540,7 @@ export default function Home() {
                 <p>{L(labels, 'landing_process_step_2_body')}</p>
               </div>
             </div>
-            <div className="ed-step active ed-reveal">
+            <div className="ed-step ed-reveal">
               <div className="ed-step-dot">3</div>
               <div className="ed-step-body">
                 <div className="ed-t">
