@@ -124,13 +124,20 @@ export default function Home() {
           <a href="#ed-method">שיטה</a>
           <a href="#ed-process">תהליך</a>
           <a href={firstChallengeHref}>אתגר חי</a>
-          <a href="/admin">ניהול</a>
         </div>
       </nav>
 
       {/* Hero */}
       <section className="ed-hero">
         <div className="ed-container">
+          {/* Eduvot logo */}
+          <div className="ed-reveal" style={{ marginBottom: 48 }}>
+            <img
+              src="/eduvot-logo-light.jpeg"
+              alt="אדוות"
+              style={{ height: 44, display: 'block' }}
+            />
+          </div>
           <div className="ed-kicker ed-reveal">
             {L(labels, 'landing_kicker')}
           </div>
@@ -149,22 +156,30 @@ export default function Home() {
             {L(labels, 'landing_lead')}
           </p>
           <div className="ed-meta ed-reveal ed-reveal-d3">
-            <span>
-              <b>{L(labels, 'landing_meta_1_b')}</b>
-              {L(labels, 'landing_meta_1_text')}
-            </span>
-            <span>
-              <b>{challenges.length || '—'}</b>
-              {L(labels, 'landing_meta_2_text')}
-            </span>
-            <span>
-              <b>{L(labels, 'landing_meta_3_b')}</b>
-              {L(labels, 'landing_meta_3_text')}
-            </span>
-            <span>
-              <b>{L(labels, 'landing_meta_4_b')}</b>
-              {L(labels, 'landing_meta_4_text')}
-            </span>
+            {L(labels, 'landing_meta_1_text') && (
+              <span>
+                <b>{L(labels, 'landing_meta_1_b')}</b>
+                {L(labels, 'landing_meta_1_text')}
+              </span>
+            )}
+            {L(labels, 'landing_meta_2_text') && (
+              <span>
+                <b>{challenges.length || '—'}</b>
+                {L(labels, 'landing_meta_2_text')}
+              </span>
+            )}
+            {L(labels, 'landing_meta_3_text') && (
+              <span>
+                <b>{L(labels, 'landing_meta_3_b')}</b>
+                {L(labels, 'landing_meta_3_text')}
+              </span>
+            )}
+            {L(labels, 'landing_meta_4_text') && (
+              <span>
+                <b>{L(labels, 'landing_meta_4_b')}</b>
+                {L(labels, 'landing_meta_4_text')}
+              </span>
+            )}
           </div>
         </div>
       </section>
@@ -344,46 +359,6 @@ export default function Home() {
               <h3>{L(labels, 'landing_method_col2_h3')}</h3>
               <p>{L(labels, 'landing_method_col2_p1')}</p>
               <p>{L(labels, 'landing_method_col2_p2')}</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Principles section */}
-      <section className="ed-section" style={{ paddingTop: 0 }}>
-        <div className="ed-container">
-          <div
-            className="ed-section-head ed-reveal"
-            style={{ maxWidth: 720 }}
-          >
-            <div
-              className="ed-label"
-              style={{ color: 'var(--water-700)' }}
-            >
-              {L(labels, 'landing_principles_label')}
-            </div>
-            <h2 className="ed-h-xl ed-serif">
-              {L(labels, 'landing_principles_h1')}{' '}
-              <em className="ed-em">
-                {L(labels, 'landing_principles_em')}
-              </em>
-            </h2>
-          </div>
-          <div className="ed-principles">
-            <div className="ed-principle ed-reveal">
-              <div className="ed-n">01</div>
-              <h4>{L(labels, 'landing_principle_1_title')}</h4>
-              <p>{L(labels, 'landing_principle_1_body')}</p>
-            </div>
-            <div className="ed-principle ed-reveal ed-reveal-d1">
-              <div className="ed-n">02</div>
-              <h4>{L(labels, 'landing_principle_2_title')}</h4>
-              <p>{L(labels, 'landing_principle_2_body')}</p>
-            </div>
-            <div className="ed-principle ed-reveal ed-reveal-d2">
-              <div className="ed-n">03</div>
-              <h4>{L(labels, 'landing_principle_3_title')}</h4>
-              <p>{L(labels, 'landing_principle_3_body')}</p>
             </div>
           </div>
         </div>
@@ -622,12 +597,15 @@ export default function Home() {
           </h2>
           <p>{L(labels, 'landing_cta_body')}</p>
           <div className="ed-cta-buttons">
-            <a href={firstChallengeHref} className="ed-btn">
-              {L(labels, 'landing_cta_btn_primary')}
-            </a>
-            <a href="/admin" className="ed-btn ghost">
-              {L(labels, 'landing_cta_btn_secondary')}
-            </a>
+            {challenges.map((c) => (
+              <a
+                key={c.id}
+                href={`/challenge/${c.id}`}
+                className="ed-btn"
+              >
+                {c.name}
+              </a>
+            ))}
           </div>
         </div>
       </section>
@@ -635,12 +613,18 @@ export default function Home() {
       {/* Footer */}
       <footer className="ed-footer">
         <div className="ed-end-row">
-          <div className="ed-brand-big">תשעת החלונות</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <img
+              src="/eduvot-logo-dark.jpeg"
+              alt="אדוות"
+              style={{ height: 44, display: 'block', background: 'var(--paper)', padding: 6 }}
+            />
+            <div className="ed-brand-big">תשעת החלונות</div>
+          </div>
           <div className="ed-end-col">
             <div className="ed-label">ניווט</div>
             <a href="/">בית</a>
             <a href={firstChallengeHref}>אתגר</a>
-            <a href="/admin">ניהול</a>
           </div>
           <div className="ed-end-col">
             <div className="ed-label">על השיטה</div>

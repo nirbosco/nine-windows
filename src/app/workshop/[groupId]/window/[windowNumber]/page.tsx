@@ -270,15 +270,13 @@ export default function WindowDetail() {
                 className={`float ${depth === 'floating' ? 'on' : ''}`}
                 onClick={() => setDepth('floating')}
               >
-                ~ {L(labels, 'depth_floating_label')} ·{' '}
-                {L(labels, 'depth_floating_tagline').split(' ').slice(0, 2).join(' ')}
+                ~ {L(labels, 'depth_floating_label')}
               </button>
               <button
                 className={`deep ${depth === 'deep' ? 'on' : ''}`}
                 onClick={() => setDepth('deep')}
               >
-                ↓ {L(labels, 'depth_deep_label')} ·{' '}
-                {L(labels, 'depth_deep_tagline').split(' ').slice(0, 2).join(' ')}
+                ↓ {L(labels, 'depth_deep_label')}
               </button>
             </div>
             <textarea

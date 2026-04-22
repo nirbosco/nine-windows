@@ -135,13 +135,13 @@ export default function WorkshopGrid() {
       const floating = wn.filter((n: { depth: string }) => n.depth === 'floating')
       const deep = wn.filter((n: { depth: string }) => n.depth === 'deep')
       if (floating.length > 0) {
-        text += 'צף:\n'
+        text += `${L(labels, 'depth_floating_label')}:\n`
         floating.forEach((n: { content: string; author_name?: string }) => {
           text += `  * ${n.content}${n.author_name ? ` (${n.author_name})` : ''}\n`
         })
       }
       if (deep.length > 0) {
-        text += 'שקוע (מה שצריך לחקור):\n'
+        text += `${L(labels, 'depth_deep_label')}:\n`
         deep.forEach((n: { content: string; author_name?: string }) => {
           text += `  * ${n.content}${n.author_name ? ` (${n.author_name})` : ''}\n`
         })

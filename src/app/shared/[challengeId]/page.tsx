@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { WINDOWS } from '@/lib/windows-data'
 import { Challenge, Group, Note, Depth } from '@/lib/types'
 import { EditorialChrome } from '@/components/EditorialChrome'
+import { loadLabels, L, DEFAULT_LABELS } from '@/lib/content'
 
 interface NoteWithGroup extends Note {
   groupName: string
@@ -21,10 +22,13 @@ export default function SharedPoolPage() {
   const [groups, setGroups] = useState<(Group & { color: string; count: number })[]>([])
   const [notes, setNotes] = useState<NoteWithGroup[]>([])
   const [loading, setLoading] = useState(true)
+  const [labels, setLabels] = useState<Record<string, string>>(DEFAULT_LABELS)
   const [filterGroup, setFilterGroup] = useState<string>('all')
   const [filterDepth, setFilterDepth] = useState<Depth | 'all'>('all')
 
   useEffect(() => {
+    loadLabels().then(setLabels)
+
     async function load() {
       const { data: c } = await supabase
         .from('challenges')
@@ -146,19 +150,19 @@ export default function SharedPoolPage() {
           className={`ed-pill ${filterDepth === 'all' ? 'on' : ''}`}
           onClick={() => setFilterDepth('all')}
         >
-          צף + שקוע
+          {L(labels, 'depth_floating_label')} + {L(labels, 'depth_deep_label')}
         </button>
         <button
           className={`ed-pill ${filterDepth === 'floating' ? 'on' : ''}`}
           onClick={() => setFilterDepth('floating')}
         >
-          רק צף
+          רק {L(labels, 'depth_floating_label')}
         </button>
         <button
           className={`ed-pill ${filterDepth === 'deep' ? 'on' : ''}`}
           onClick={() => setFilterDepth('deep')}
         >
-          רק שקוע
+          רק {L(labels, 'depth_deep_label')}
         </button>
       </div>
 
@@ -225,7 +229,9 @@ export default function SharedPoolPage() {
                         <span
                           className={`ed-type ${n.depth === 'floating' ? 'float' : 'sink'}`}
                         >
-                          {n.depth === 'floating' ? 'צף' : 'שקוע'}
+                          {n.depth === 'floating'
+                            ? L(labels, 'depth_floating_label')
+                            : L(labels, 'depth_deep_label')}
                         </span>
                       </div>
                       <p>

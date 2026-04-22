@@ -11,6 +11,7 @@ import {
   Depth,
 } from '@/lib/types'
 import { EditorialChrome } from '@/components/EditorialChrome'
+import { loadLabels, L, DEFAULT_LABELS } from '@/lib/content'
 
 interface GroupData {
   group: Group
@@ -26,6 +27,11 @@ export default function AdminPage() {
   const [groupsData, setGroupsData] = useState<GroupData[]>([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<ViewMode>('pools')
+  const [labels, setLabels] = useState<Record<string, string>>(DEFAULT_LABELS)
+
+  useEffect(() => {
+    loadLabels().then(setLabels)
+  }, [])
 
   useEffect(() => {
     async function load() {
@@ -106,14 +112,14 @@ export default function AdminPage() {
       const floating = wn.filter((n) => n.depth === 'floating')
       const deep = wn.filter((n) => n.depth === 'deep')
       if (floating.length > 0) {
-        text += 'צף:\n'
+        text += `${L(labels, 'depth_floating_label')}:\n`
         floating.forEach((n) => {
           text += `  * ${n.content}${n.author_name ? ` (${n.author_name})` : ''}\n`
         })
         text += '\n'
       }
       if (deep.length > 0) {
-        text += 'שקוע:\n'
+        text += `${L(labels, 'depth_deep_label')}:\n`
         deep.forEach((n) => {
           text += `  * ${n.content}${n.author_name ? ` (${n.author_name})` : ''}\n`
         })
@@ -238,11 +244,11 @@ export default function AdminPage() {
             </div>
             <div>
               <div className="ed-num">{totalFloating}</div>
-              <div className="ed-lbl">צף</div>
+              <div className="ed-lbl">{L(labels, 'depth_floating_label')}</div>
             </div>
             <div>
               <div className="ed-num">{totalDeep}</div>
-              <div className="ed-lbl">שקוע</div>
+              <div className="ed-lbl">{L(labels, 'depth_deep_label')}</div>
             </div>
             <div>
               <div className="ed-num">
@@ -375,11 +381,11 @@ export default function AdminPage() {
                     </div>
                     <div>
                       <b>{floating.length}</b>
-                      <span>צף</span>
+                      <span>{L(labels, 'depth_floating_label')}</span>
                     </div>
                     <div>
                       <b>{deep.length}</b>
-                      <span>שקוע</span>
+                      <span>{L(labels, 'depth_deep_label')}</span>
                     </div>
                   </div>
                 </div>
@@ -490,7 +496,9 @@ export default function AdminPage() {
                       <span
                         className={`ed-tag ${note.depth === 'floating' ? 'float' : 'sink'}`}
                       >
-                        {note.depth === 'floating' ? 'צף' : 'שקוע'}
+                        {note.depth === 'floating'
+                          ? L(labels, 'depth_floating_label')
+                          : L(labels, 'depth_deep_label')}
                       </span>
                     </div>
                   </div>
