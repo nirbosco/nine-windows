@@ -106,8 +106,8 @@ const LABEL_LABELS: Record<string, string> = {
   landing_cta_btn_primary: 'כפתור ראשי',
   landing_cta_btn_secondary: 'כפתור משני',
   // footer
-  footer_credit_1: 'קרדיט 1',
-  footer_credit_2: 'קרדיט 2',
+  footer_credit_1: 'קרדיט פוטר',
+  footer_credit_2: 'קרדיט משני (אופציונלי)',
 }
 
 const LABEL_GROUPS: { title: string; keys: string[] }[] = [

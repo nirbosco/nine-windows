@@ -675,19 +675,15 @@ export default function Home() {
             <a href="#ed-grid">מטריצה</a>
             <a href="#ed-process">תהליך</a>
           </div>
-          <div className="ed-end-col">
-            <div className="ed-label">קרדיט</div>
-            <span style={{ fontSize: 13, padding: '4px 0', display: 'block' }}>
-              {L(labels, 'footer_credit_1')}
-            </span>
-            <span style={{ fontSize: 13, padding: '4px 0', display: 'block' }}>
-              {L(labels, 'footer_credit_2')}
-            </span>
-          </div>
         </div>
         <div className="ed-end-legal">
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+            {L(labels, 'footer_credit_1')}
+            {L(labels, 'footer_credit_2') && (
+              <> · {L(labels, 'footer_credit_2')}</>
+            )}
+          </div>
           <div className="ed-mono">אדוות · מחזור ז׳ · 2026</div>
-          <div className="ed-mono">v2.0 · Editorial</div>
         </div>
       </footer>
     </main>
