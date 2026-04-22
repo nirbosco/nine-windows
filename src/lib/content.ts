@@ -68,6 +68,18 @@ export const DEFAULT_LABELS: Record<string, string> = {
   session_cycle_label: 'אדוות · מחזור ז׳',
 }
 
+/**
+ * Label lookup with empty-string awareness.
+ * - If DB has the key (even as empty string) → use DB value.
+ * - Otherwise fall back to hardcoded default.
+ * - Last resort: return the key itself (helps spot unmigrated keys).
+ */
 export function L(labels: Record<string, string>, key: string): string {
-  return labels[key] || DEFAULT_LABELS[key] || key
+  if (Object.prototype.hasOwnProperty.call(labels, key)) {
+    return labels[key]
+  }
+  if (Object.prototype.hasOwnProperty.call(DEFAULT_LABELS, key)) {
+    return DEFAULT_LABELS[key]
+  }
+  return key
 }

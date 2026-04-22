@@ -339,26 +339,44 @@ export default function Home() {
             </div>
             <h2 className="ed-h-xl ed-serif">
               {L(labels, 'landing_method_h1')}
-              <br />
-              <em className="ed-em">{L(labels, 'landing_method_em')}</em>
+              {L(labels, 'landing_method_em') && (
+                <>
+                  <br />
+                  <em className="ed-em">{L(labels, 'landing_method_em')}</em>
+                </>
+              )}
             </h2>
-            <p
-              className="ed-body-lg"
-              style={{ color: 'var(--muted-ink)', maxWidth: 640 }}
-            >
-              {L(labels, 'landing_method_intro')}
-            </p>
+            {L(labels, 'landing_method_intro') && (
+              <p
+                className="ed-body-lg"
+                style={{ color: 'var(--muted-ink)', maxWidth: 640 }}
+              >
+                {L(labels, 'landing_method_intro')}
+              </p>
+            )}
           </div>
           <div className="ed-two-col">
             <div className="ed-reveal">
-              <h3>{L(labels, 'landing_method_col1_h3')}</h3>
-              <p>{L(labels, 'landing_method_col1_p1')}</p>
-              <p>{L(labels, 'landing_method_col1_p2')}</p>
+              {L(labels, 'landing_method_col1_h3') && (
+                <h3>{L(labels, 'landing_method_col1_h3')}</h3>
+              )}
+              {L(labels, 'landing_method_col1_p1') && (
+                <p>{L(labels, 'landing_method_col1_p1')}</p>
+              )}
+              {L(labels, 'landing_method_col1_p2') && (
+                <p>{L(labels, 'landing_method_col1_p2')}</p>
+              )}
             </div>
             <div className="ed-reveal ed-reveal-d1">
-              <h3>{L(labels, 'landing_method_col2_h3')}</h3>
-              <p>{L(labels, 'landing_method_col2_p1')}</p>
-              <p>{L(labels, 'landing_method_col2_p2')}</p>
+              {L(labels, 'landing_method_col2_h3') && (
+                <h3>{L(labels, 'landing_method_col2_h3')}</h3>
+              )}
+              {L(labels, 'landing_method_col2_p1') && (
+                <p>{L(labels, 'landing_method_col2_p1')}</p>
+              )}
+              {L(labels, 'landing_method_col2_p2') && (
+                <p>{L(labels, 'landing_method_col2_p2')}</p>
+              )}
             </div>
           </div>
         </div>
@@ -379,10 +397,16 @@ export default function Home() {
               style={{ color: 'var(--paper)' }}
             >
               {L(labels, 'landing_grid_h1')}
-              <br />
-              <em className="ed-em">{L(labels, 'landing_grid_em')}</em>
+              {L(labels, 'landing_grid_em') && (
+                <>
+                  <br />
+                  <em className="ed-em">{L(labels, 'landing_grid_em')}</em>
+                </>
+              )}
             </h2>
-            <p className="ed-body-lg">{L(labels, 'landing_grid_body')}</p>
+            {L(labels, 'landing_grid_body') && (
+              <p className="ed-body-lg">{L(labels, 'landing_grid_body')}</p>
+            )}
           </div>
           <div className="ed-nine-grid">
             <div></div>
@@ -486,8 +510,13 @@ export default function Home() {
               {L(labels, 'landing_process_label')}
             </div>
             <h2 className="ed-h-xl ed-serif">
-              {L(labels, 'landing_process_h1')}{' '}
-              <em className="ed-em">{L(labels, 'landing_process_em')}</em>
+              {L(labels, 'landing_process_h1')}
+              {L(labels, 'landing_process_em') && (
+                <>
+                  {' '}
+                  <em className="ed-em">{L(labels, 'landing_process_em')}</em>
+                </>
+              )}
             </h2>
           </div>
           <div className="ed-process-timeline">
@@ -550,15 +579,21 @@ export default function Home() {
             </div>
             <h2 className="ed-h-xl ed-serif">
               {challenges.length > 1 ? `${challenges.length} אתגרים` : 'אתגר'}.
-              <br />
-              <em className="ed-em">{L(labels, 'landing_cases_em')}</em>
+              {L(labels, 'landing_cases_em') && (
+                <>
+                  <br />
+                  <em className="ed-em">{L(labels, 'landing_cases_em')}</em>
+                </>
+              )}
             </h2>
-            <p
-              className="ed-body-lg"
-              style={{ color: 'var(--muted-ink)', maxWidth: 640 }}
-            >
-              {L(labels, 'landing_cases_body')}
-            </p>
+            {L(labels, 'landing_cases_body') && (
+              <p
+                className="ed-body-lg"
+                style={{ color: 'var(--muted-ink)', maxWidth: 640 }}
+              >
+                {L(labels, 'landing_cases_body')}
+              </p>
+            )}
           </div>
           <div className="ed-cases">
             {challenges.map((c, i) => (
@@ -592,10 +627,14 @@ export default function Home() {
         <div className="ed-container">
           <h2 className="ed-serif">
             {L(labels, 'landing_cta_h1')}
-            <br />
-            <em className="ed-em">{L(labels, 'landing_cta_em')}</em>
+            {L(labels, 'landing_cta_em') && (
+              <>
+                <br />
+                <em className="ed-em">{L(labels, 'landing_cta_em')}</em>
+              </>
+            )}
           </h2>
-          <p>{L(labels, 'landing_cta_body')}</p>
+          {L(labels, 'landing_cta_body') && <p>{L(labels, 'landing_cta_body')}</p>}
           <div className="ed-cta-buttons">
             {challenges.map((c) => (
               <a
