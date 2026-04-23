@@ -155,32 +155,6 @@ export default function Home() {
           <p className="ed-lead ed-reveal ed-reveal-d2">
             {L(labels, 'landing_lead')}
           </p>
-          <div className="ed-meta ed-reveal ed-reveal-d3">
-            {L(labels, 'landing_meta_1_text') && (
-              <span>
-                <b>{L(labels, 'landing_meta_1_b')}</b>
-                {L(labels, 'landing_meta_1_text')}
-              </span>
-            )}
-            {L(labels, 'landing_meta_2_text') && (
-              <span>
-                <b>{challenges.length || '—'}</b>
-                {L(labels, 'landing_meta_2_text')}
-              </span>
-            )}
-            {L(labels, 'landing_meta_3_text') && (
-              <span>
-                <b>{L(labels, 'landing_meta_3_b')}</b>
-                {L(labels, 'landing_meta_3_text')}
-              </span>
-            )}
-            {L(labels, 'landing_meta_4_text') && (
-              <span>
-                <b>{L(labels, 'landing_meta_4_b')}</b>
-                {L(labels, 'landing_meta_4_text')}
-              </span>
-            )}
-          </div>
         </div>
       </section>
 

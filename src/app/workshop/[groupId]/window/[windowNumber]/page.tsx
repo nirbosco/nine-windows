@@ -26,10 +26,7 @@ export default function WindowDetail() {
   const [challenge, setChallenge] = useState<Challenge | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const [depth, setDepth] = useState<Depth>('floating')
-  const [noteContent, setNoteContent] = useState('')
   const [authorName, setAuthorName] = useState('')
-  const [submitting, setSubmitting] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
 
@@ -85,17 +82,18 @@ export default function WindowDetail() {
     load()
   }, [groupId, winNum, loadNotes])
 
-  async function handleSubmit() {
-    if (!noteContent.trim()) return
-    setSubmitting(true)
-    if (authorName)
+  async function addNote(content: string, depth: Depth): Promise<boolean> {
+    const trimmed = content.trim()
+    if (!trimmed) return false
+    if (authorName) {
       localStorage.setItem(`nw-author-${groupId}`, authorName)
+    }
     const { data } = await supabase
       .from('notes')
       .insert({
         group_id: groupId,
         window_number: winNum,
-        content: noteContent.trim(),
+        content: trimmed,
         depth,
         author_name: authorName || null,
       })
@@ -103,9 +101,9 @@ export default function WindowDetail() {
       .single()
     if (data) {
       setNotes((prev) => [data as Note, ...prev])
-      setNoteContent('')
+      return true
     }
-    setSubmitting(false)
+    return false
   }
 
   async function handleDelete(noteId: string) {
@@ -191,14 +189,10 @@ export default function WindowDetail() {
             </a>
           </span>
           <span className="wm-title">
-            חלון {String(winNum).padStart(2, '0')} ·{' '}
-            <em>{win.title.replace('?', '')}?</em>
+            {winNum} · {timeLabel} + {sysLabel}
           </span>
+          <span className="wm-subtitle-stack">{win.title}</span>
         </div>
-
-        <span className="wm-subtitle">
-          {sysLabel} · {timeLabel}
-        </span>
 
         <div className="wm-spacer" />
 
@@ -239,9 +233,20 @@ export default function WindowDetail() {
           <div>
             <div className="wm-side-kicker">שלב {winNum} מתוך 9</div>
             <h1 className="wm-side-title">
-              {win.title.replace('?', '')}
-              <em>?</em>
+              {winNum} · {timeLabel} <em>+ {sysLabel}</em>
             </h1>
+            <p
+              style={{
+                fontFamily: "'Frank Ruhl Libre', serif",
+                fontSize: 17,
+                lineHeight: 1.35,
+                color: 'var(--muted-ink)',
+                fontStyle: 'italic',
+                marginTop: 8,
+              }}
+            >
+              {win.title}
+            </p>
           </div>
 
           {win.description && (
@@ -262,76 +267,6 @@ export default function WindowDetail() {
             </ul>
           </div>
 
-          {/* Add note */}
-          <div className="wm-add">
-            <h3>{L(labels, 'cta_add_point')}</h3>
-            <div className="wm-depth-toggle">
-              <button
-                className={`float ${depth === 'floating' ? 'on' : ''}`}
-                onClick={() => setDepth('floating')}
-              >
-                ~ {L(labels, 'depth_floating_label')}
-              </button>
-              <button
-                className={`deep ${depth === 'deep' ? 'on' : ''}`}
-                onClick={() => setDepth('deep')}
-              >
-                ↓ {L(labels, 'depth_deep_label')}
-              </button>
-            </div>
-            <textarea
-              value={noteContent}
-              onChange={(e) => setNoteContent(e.target.value)}
-              placeholder={
-                depth === 'floating'
-                  ? L(labels, 'placeholder_floating')
-                  : L(labels, 'placeholder_deep')
-              }
-              rows={3}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey))
-                  handleSubmit()
-              }}
-            />
-            <div className="wm-add-row">
-              {members.length > 0 ? (
-                <select
-                  value={authorName}
-                  onChange={(e) => setAuthorName(e.target.value)}
-                >
-                  <option value="">בחרו שם</option>
-                  {members.map((m) => (
-                    <option key={m.id} value={m.name}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type="text"
-                  value={authorName}
-                  onChange={(e) => setAuthorName(e.target.value)}
-                  placeholder="השם שלך"
-                />
-              )}
-              <button
-                className="wm-btn primary"
-                onClick={handleSubmit}
-                disabled={!noteContent.trim() || submitting}
-              >
-                {submitting ? 'מוסיף...' : 'הוסיפו'}
-              </button>
-            </div>
-            <p
-              style={{
-                fontSize: 10,
-                color: 'var(--muted-ink)',
-                opacity: 0.7,
-              }}
-            >
-              Ctrl+Enter לשליחה מהירה
-            </p>
-          </div>
         </aside>
 
         {/* Main: 2 lanes stacked — float (top) + deep (bottom) */}
@@ -356,34 +291,38 @@ export default function WindowDetail() {
                   : `${floating.length} נקודות`}
               </span>
             </div>
-            {floating.length === 0 ? (
-              <p className="wm-empty">
-                {L(labels, 'empty_floating')}
-              </p>
-            ) : (
-              <ul className="wm-notes">
-                {floating.map((note) => (
-                  <NoteRow
-                    key={note.id}
-                    note={note}
-                    editing={editingId === note.id}
-                    editContent={editContent}
-                    setEditContent={setEditContent}
-                    onEditStart={() => {
-                      setEditingId(note.id)
-                      setEditContent(note.content)
-                    }}
-                    onEditSave={() => handleEditSave(note.id)}
-                    onEditCancel={() => {
-                      setEditingId(null)
-                      setEditContent('')
-                    }}
-                    onDelete={() => handleDelete(note.id)}
-                    onToggleDepth={() => handleToggleDepth(note)}
-                  />
-                ))}
-              </ul>
-            )}
+            <ul className="wm-notes" style={{ flex: 1 }}>
+              {floating.length === 0 && (
+                <li>
+                  <p className="wm-empty">{L(labels, 'empty_floating')}</p>
+                </li>
+              )}
+              {floating.map((note) => (
+                <NoteRow
+                  key={note.id}
+                  note={note}
+                  editing={editingId === note.id}
+                  editContent={editContent}
+                  setEditContent={setEditContent}
+                  onEditStart={() => {
+                    setEditingId(note.id)
+                    setEditContent(note.content)
+                  }}
+                  onEditSave={() => handleEditSave(note.id)}
+                  onEditCancel={() => {
+                    setEditingId(null)
+                    setEditContent('')
+                  }}
+                  onDelete={() => handleDelete(note.id)}
+                  onToggleDepth={() => handleToggleDepth(note)}
+                />
+              ))}
+            </ul>
+            <InlineComposer
+              depth="floating"
+              placeholder={L(labels, 'placeholder_floating')}
+              onAdd={addNote}
+            />
           </div>
 
           {/* Deep lane */}
@@ -404,32 +343,38 @@ export default function WindowDetail() {
                 {deep.length === 1 ? '1 נקודה' : `${deep.length} נקודות`}
               </span>
             </div>
-            {deep.length === 0 ? (
-              <p className="wm-empty">{L(labels, 'empty_deep')}</p>
-            ) : (
-              <ul className="wm-notes">
-                {deep.map((note) => (
-                  <NoteRow
-                    key={note.id}
-                    note={note}
-                    editing={editingId === note.id}
-                    editContent={editContent}
-                    setEditContent={setEditContent}
-                    onEditStart={() => {
-                      setEditingId(note.id)
-                      setEditContent(note.content)
-                    }}
-                    onEditSave={() => handleEditSave(note.id)}
-                    onEditCancel={() => {
-                      setEditingId(null)
-                      setEditContent('')
-                    }}
-                    onDelete={() => handleDelete(note.id)}
-                    onToggleDepth={() => handleToggleDepth(note)}
-                  />
-                ))}
-              </ul>
-            )}
+            <ul className="wm-notes" style={{ flex: 1 }}>
+              {deep.length === 0 && (
+                <li>
+                  <p className="wm-empty">{L(labels, 'empty_deep')}</p>
+                </li>
+              )}
+              {deep.map((note) => (
+                <NoteRow
+                  key={note.id}
+                  note={note}
+                  editing={editingId === note.id}
+                  editContent={editContent}
+                  setEditContent={setEditContent}
+                  onEditStart={() => {
+                    setEditingId(note.id)
+                    setEditContent(note.content)
+                  }}
+                  onEditSave={() => handleEditSave(note.id)}
+                  onEditCancel={() => {
+                    setEditingId(null)
+                    setEditContent('')
+                  }}
+                  onDelete={() => handleDelete(note.id)}
+                  onToggleDepth={() => handleToggleDepth(note)}
+                />
+              ))}
+            </ul>
+            <InlineComposer
+              depth="deep"
+              placeholder={L(labels, 'placeholder_deep')}
+              onAdd={addNote}
+            />
           </div>
         </div>
       </div>
@@ -530,5 +475,71 @@ function NoteRow({
         </button>
       </div>
     </li>
+  )
+}
+
+function InlineComposer({
+  depth,
+  placeholder,
+  onAdd,
+}: {
+  depth: Depth
+  placeholder: string
+  onAdd: (content: string, depth: Depth) => Promise<boolean>
+}) {
+  const [value, setValue] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const inputRef = useCallback((el: HTMLTextAreaElement | null) => {
+    // auto-resize
+    if (el) {
+      el.style.height = 'auto'
+      el.style.height = Math.min(el.scrollHeight, 140) + 'px'
+    }
+  }, [])
+
+  async function submit() {
+    if (!value.trim()) return
+    setSubmitting(true)
+    const ok = await onAdd(value, depth)
+    if (ok) setValue('')
+    setSubmitting(false)
+  }
+
+  return (
+    <div className={`wm-composer ${depth}`}>
+      <span
+        className={`wm-note-bullet ${depth === 'floating' ? 'float' : 'deep'}`}
+      />
+      <textarea
+        ref={inputRef}
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value)
+          const el = e.currentTarget
+          el.style.height = 'auto'
+          el.style.height = Math.min(el.scrollHeight, 140) + 'px'
+        }}
+        placeholder={placeholder}
+        rows={1}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault()
+            submit()
+          }
+          if (e.key === 'Escape') {
+            setValue('')
+            ;(e.target as HTMLTextAreaElement).blur()
+          }
+        }}
+      />
+      <button
+        onClick={submit}
+        disabled={!value.trim() || submitting}
+        title="הוסיפו (Enter)"
+        aria-label="הוסיפו"
+      >
+        {submitting ? '...' : '+'}
+      </button>
+    </div>
   )
 }

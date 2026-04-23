@@ -20,6 +20,12 @@ export default function WorkshopGrid() {
   const [challenge, setChallenge] = useState<Challenge | null>(null)
   const [counts, setCounts] = useState<WindowCounts>({})
   const [windowNotes, setWindowNotes] = useState<WindowNotes>({})
+  const [openedNote, setOpenedNote] = useState<{
+    content: string
+    author_name: string | null
+    depth: Depth
+    windowNumber: number
+  } | null>(null)
   const [WINDOWS, setWINDOWS] = useState<WindowData[]>(DEFAULT_WINDOWS)
   const [labels, setLabels] = useState<Record<string, string>>(DEFAULT_LABELS)
   const [loading, setLoading] = useState(true)
@@ -353,18 +359,30 @@ export default function WorkshopGrid() {
                 >
                   <div className="wm-tile-waterline"></div>
                   <div className="wm-tile-header">
-                    <span className="wm-tile-num">
-                      {String(n).padStart(2, '0')}
-                    </span>
-                    <span className="wm-tile-time">
-                      {win.timeFrame === 'past'
-                        ? 'עבר'
-                        : win.timeFrame === 'present'
-                          ? 'הווה'
-                          : 'עתיד'}
-                    </span>
+                    <span className="wm-tile-num">{n}</span>
                   </div>
-                  <div className="wm-tile-title">{win.title}</div>
+                  <div className="wm-tile-title">
+                    {win.timeFrame === 'past'
+                      ? 'עבר'
+                      : win.timeFrame === 'present'
+                        ? 'הווה'
+                        : 'עתיד'}{' '}
+                    + {row.label}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "'Frank Ruhl Libre', serif",
+                      fontSize: 13,
+                      fontStyle: 'italic',
+                      color: 'rgba(255, 255, 255, 0.65)',
+                      marginTop: 4,
+                      lineHeight: 1.3,
+                      position: 'relative',
+                      zIndex: 2,
+                    }}
+                  >
+                    {win.title}
+                  </div>
                   <div className="wm-tile-stones">
                     {Array.from({ length: maxF }).map((_, i) => {
                       const note = wn.floating[i]
@@ -375,9 +393,16 @@ export default function WorkshopGrid() {
                           className={`wm-stone float ${note ? 'has-content' : ''}`}
                           onClick={(e) => {
                             e.stopPropagation()
-                            router.push(
-                              `/workshop/${groupId}/window/${n}`,
-                            )
+                            if (note) {
+                              setOpenedNote({
+                                content: note.content,
+                                author_name: note.author_name,
+                                depth: 'floating',
+                                windowNumber: n,
+                              })
+                            } else {
+                              router.push(`/workshop/${groupId}/window/${n}`)
+                            }
                           }}
                           style={{
                             left: r(8, 88) + '%',
@@ -386,21 +411,7 @@ export default function WorkshopGrid() {
                             height: sz,
                             animationDelay: r(0, 2) + 's',
                           }}
-                        >
-                          {note && (
-                            <div className="wm-stone-tip">
-                              <span className="wm-stone-tip-depth">
-                                ~ {L(labels, 'depth_floating_label')} · חלון {n}
-                              </span>
-                              {note.content}
-                              {note.author_name && (
-                                <span className="wm-stone-tip-author">
-                                  — {note.author_name}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                        />
                       )
                     })}
                     {Array.from({ length: maxD }).map((_, i) => {
@@ -412,9 +423,16 @@ export default function WorkshopGrid() {
                           className={`wm-stone deep ${note ? 'has-content' : ''}`}
                           onClick={(e) => {
                             e.stopPropagation()
-                            router.push(
-                              `/workshop/${groupId}/window/${n}`,
-                            )
+                            if (note) {
+                              setOpenedNote({
+                                content: note.content,
+                                author_name: note.author_name,
+                                depth: 'deep',
+                                windowNumber: n,
+                              })
+                            } else {
+                              router.push(`/workshop/${groupId}/window/${n}`)
+                            }
                           }}
                           style={{
                             left: r(8, 88) + '%',
@@ -422,21 +440,7 @@ export default function WorkshopGrid() {
                             width: sz,
                             height: sz,
                           }}
-                        >
-                          {note && (
-                            <div className="wm-stone-tip">
-                              <span className="wm-stone-tip-depth">
-                                ↓ {L(labels, 'depth_deep_label')} · חלון {n}
-                              </span>
-                              {note.content}
-                              {note.author_name && (
-                                <span className="wm-stone-tip-author">
-                                  — {note.author_name}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                        />
                       )
                     })}
                   </div>
@@ -457,6 +461,136 @@ export default function WorkshopGrid() {
           ])}
         </div>
       </div>
+
+      {/* Note modal — click on a stone */}
+      {openedNote && (
+        <div
+          onClick={() => setOpenedNote(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(5, 31, 48, 0.78)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 500,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+            cursor: 'pointer',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: 560,
+              width: '100%',
+              background: 'var(--paper)',
+              padding: '40px 44px',
+              borderRight: `4px solid ${openedNote.depth === 'floating' ? 'var(--water-300)' : 'var(--water-800)'}`,
+              cursor: 'default',
+              position: 'relative',
+            }}
+          >
+            <button
+              onClick={() => setOpenedNote(null)}
+              style={{
+                position: 'absolute',
+                top: 16,
+                left: 16,
+                width: 32,
+                height: 32,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 22,
+                color: 'var(--muted-ink)',
+                lineHeight: 1,
+              }}
+              aria-label="סגור"
+            >
+              ×
+            </button>
+
+            <div
+              style={{
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: 11,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                color: 'var(--water-700)',
+                marginBottom: 20,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 10,
+              }}
+            >
+              <span
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  background:
+                    openedNote.depth === 'floating'
+                      ? 'var(--water-100)'
+                      : 'var(--water-500)',
+                  border: `1.5px solid ${openedNote.depth === 'floating' ? 'var(--water-500)' : 'var(--water-900)'}`,
+                }}
+              />
+              {openedNote.depth === 'floating'
+                ? L(labels, 'depth_floating_label')
+                : L(labels, 'depth_deep_label')}{' '}
+              · חלון {openedNote.windowNumber}
+            </div>
+
+            <blockquote
+              style={{
+                fontFamily: "'Frank Ruhl Libre', serif",
+                fontSize: 22,
+                fontWeight: 500,
+                lineHeight: 1.4,
+                letterSpacing: '-0.01em',
+                color: 'var(--ink)',
+                marginBottom: 24,
+              }}
+            >
+              &ldquo;{openedNote.content}&rdquo;
+            </blockquote>
+
+            {openedNote.author_name && (
+              <div
+                style={{
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: 11,
+                  letterSpacing: '0.08em',
+                  color: 'var(--muted-ink)',
+                  marginBottom: 24,
+                }}
+              >
+                — {openedNote.author_name}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                onClick={() => {
+                  const wn = openedNote.windowNumber
+                  setOpenedNote(null)
+                  router.push(`/workshop/${groupId}/window/${wn}`)
+                }}
+                className="wm-btn primary"
+              >
+                פתח את החלון ←
+              </button>
+              <button
+                onClick={() => setOpenedNote(null)}
+                className="wm-btn"
+              >
+                סגור
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
