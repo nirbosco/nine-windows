@@ -3943,3 +3943,18 @@ body {
   color: var(--ink);
   border-color: var(--paper);
 }
+
+/* ====================================================
+   MINIMAL FOOTER for workshop/window pages
+   ==================================================== */
+
+.wm-footer-credit {
+  padding: 10px 24px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted-ink);
+  text-align: center;
+  border-top: 1px solid var(--line);
+  background: var(--paper);
+}

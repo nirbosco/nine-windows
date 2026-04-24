@@ -591,6 +591,10 @@ export default function WorkshopGrid() {
           </div>
         </div>
       )}
+
+      <div className="wm-footer-credit">
+        פיתוח, בנייה ועיצוב — ארגון חותם, אחריות לחינוך בישראל
+      </div>
     </main>
   )
 }

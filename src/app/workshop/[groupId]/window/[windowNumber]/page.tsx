@@ -378,6 +378,10 @@ export default function WindowDetail() {
           </div>
         </div>
       </div>
+
+      <div className="wm-footer-credit">
+        פיתוח, בנייה ועיצוב — ארגון חותם, אחריות לחינוך בישראל
+      </div>
     </main>
   )
 }
