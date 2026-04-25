@@ -3958,3 +3958,524 @@ body {
   border-top: 1px solid var(--line);
   background: var(--paper);
 }
+
+/* ====================================================
+   WINDOW TIMER (in topbar) — white → red after 10 min
+   ==================================================== */
+
+.wm-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--muted-ink);
+  transition: color 0.6s ease, border-color 0.6s ease, background 0.6s ease;
+}
+
+.wm-timer-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.7;
+  animation: wm-timer-blink 1.6s ease-in-out infinite;
+}
+
+.wm-timer.danger {
+  color: #C44D3A;
+  border-color: rgba(196, 77, 58, 0.45);
+  background: #FDF2EF;
+}
+
+@keyframes wm-timer-blink {
+  0%, 100% { opacity: 0.4; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* ====================================================
+   BRAIN BREAK — trigger button (always available)
+   ==================================================== */
+
+.bb-trigger {
+  position: fixed;
+  bottom: 56px;
+  left: 16px;
+  z-index: 400;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: 'Heebo', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--muted-ink);
+  box-shadow: 0 4px 16px rgba(10, 53, 86, 0.08);
+  transition: all 0.2s ease;
+}
+
+.bb-trigger:hover {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(10, 53, 86, 0.18);
+}
+
+.bb-trigger-icon {
+  font-size: 16px;
+}
+
+/* ====================================================
+   BANNER — slides up from bottom on row boundary
+   ==================================================== */
+
+.bb-banner {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 450;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  max-width: 580px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+  animation: bb-banner-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+
+@keyframes bb-banner-in {
+  from { transform: translateY(120%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.bb-banner-text {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 17px;
+  line-height: 1.4;
+  font-weight: 500;
+  flex: 1;
+}
+
+.bb-banner-text em {
+  font-style: italic;
+  color: var(--water-300);
+}
+
+.bb-banner-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.bb-btn {
+  padding: 9px 16px;
+  font-family: 'Heebo', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border: 1px solid var(--paper);
+  background: transparent;
+  color: var(--paper);
+  transition: all 0.15s;
+}
+
+.bb-btn:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.bb-btn.primary {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.bb-btn.primary:hover {
+  background: var(--water-300);
+  color: var(--ink);
+  border-color: var(--water-300);
+}
+
+.bb-btn.ghost {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.bb-btn.ghost:hover {
+  border-color: var(--paper);
+  background: transparent;
+  color: var(--paper);
+}
+
+/* ====================================================
+   MODAL
+   ==================================================== */
+
+.bb-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 31, 48, 0.78);
+  backdrop-filter: blur(6px);
+  z-index: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: bb-overlay-in 0.25s ease forwards;
+}
+
+@keyframes bb-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.bb-modal {
+  background: var(--paper);
+  width: 100%;
+  max-width: 720px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 48px 56px;
+  position: relative;
+  animation: bb-modal-in 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+
+@keyframes bb-modal-in {
+  from { transform: translateY(20px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.bb-modal-close {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--muted-ink);
+  line-height: 1;
+}
+
+.bb-modal-close:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.bb-modal-kicker {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--water-700);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-weight: 700;
+}
+
+.bb-line {
+  width: 24px;
+  height: 1px;
+  background: currentColor;
+  display: inline-block;
+}
+
+.bb-modal-title {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+
+.bb-modal-title em {
+  font-style: italic;
+  color: var(--water-800);
+}
+
+.bb-modal-sub {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 17px;
+  line-height: 1.45;
+  font-style: italic;
+  color: var(--muted-ink);
+  margin-bottom: 36px;
+}
+
+.bb-activity-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.bb-activity-card {
+  text-align: right;
+  background: var(--bone-050, #FBF8F3);
+  border: 1px solid var(--line);
+  padding: 24px 22px 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: 'Heebo', sans-serif;
+  color: var(--ink);
+}
+
+.bb-activity-card:hover {
+  border-color: var(--water-700);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(15, 74, 120, 0.1);
+}
+
+.bb-activity-icon {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.bb-activity-card h3 {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.bb-activity-card p {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted-ink);
+  flex: 1;
+}
+
+.bb-activity-len {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--water-700);
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+@media (max-width: 720px) {
+  .bb-activity-grid {
+    grid-template-columns: 1fr;
+  }
+  .bb-modal {
+    padding: 36px 28px;
+  }
+  .bb-modal-title {
+    font-size: 28px;
+  }
+}
+
+/* ====================================================
+   ACTIVITY RUNNER (inside modal)
+   ==================================================== */
+
+.bb-runner {
+  position: relative;
+  text-align: center;
+}
+
+.bb-back {
+  position: absolute;
+  top: -8px;
+  right: 0;
+  background: transparent;
+  border: none;
+  color: var(--muted-ink);
+  font-family: 'Heebo', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 6px 0;
+}
+
+.bb-back:hover {
+  color: var(--ink);
+}
+
+.bb-runner-title {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--ink);
+  margin-bottom: 8px;
+  margin-top: 16px;
+}
+
+.bb-runner-title em {
+  font-style: italic;
+  color: var(--water-800);
+}
+
+.bb-runner-sub {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--muted-ink);
+  font-style: italic;
+  margin-bottom: 36px;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.bb-runner-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.bb-runner-actions .bb-btn {
+  border-color: var(--ink);
+  color: var(--ink);
+  padding: 12px 24px;
+  font-size: 13px;
+}
+
+.bb-runner-actions .bb-btn:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.bb-runner-actions .bb-btn.primary {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.bb-runner-actions .bb-btn.primary:hover {
+  background: var(--water-800);
+  border-color: var(--water-800);
+}
+
+/* Breath stage */
+.bb-breath-stage {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bb-breath-circle {
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    var(--water-300),
+    var(--water-700)
+  );
+  box-shadow: 0 16px 60px rgba(15, 74, 120, 0.35);
+  transform-origin: center;
+}
+
+.bb-breath-num {
+  position: absolute;
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 64px;
+  font-weight: 500;
+  color: var(--paper);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+.bb-breath-meta {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-ink);
+  margin-top: 24px;
+}
+
+/* Stretch */
+.bb-stretch-name {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 24px;
+  font-weight: 500;
+  margin: 12px 0 8px;
+}
+
+.bb-stretch-timer {
+  height: 6px;
+  background: var(--line);
+  margin: 28px auto 8px;
+  max-width: 420px;
+  position: relative;
+  overflow: hidden;
+}
+
+.bb-stretch-bar {
+  height: 100%;
+  background: var(--water-700);
+}
+
+.bb-stretch-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--muted-ink);
+  letter-spacing: 0.1em;
+}
+
+/* Wordgame */
+.bb-wordgame-seed {
+  margin: 24px auto 12px;
+  padding: 32px 24px;
+  background: var(--bone-050, #FBF8F3);
+  border: 1px solid var(--line);
+  max-width: 420px;
+}
+
+.bb-wordgame-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted-ink);
+  margin-bottom: 12px;
+}
+
+.bb-wordgame-word {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 56px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--water-800);
+  line-height: 1;
+}
+
+.bb-wordgame-timer {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 36px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-top: 16px;
+  letter-spacing: -0.02em;
+}

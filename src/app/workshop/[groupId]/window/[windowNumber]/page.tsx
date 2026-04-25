@@ -7,6 +7,7 @@ import { WINDOWS } from '@/lib/windows-data'
 import { Note, Depth, GroupMember, Challenge, Group } from '@/lib/types'
 import { loadWindows, loadLabels, L, DEFAULT_LABELS } from '@/lib/content'
 import type { WindowData } from '@/lib/windows-data'
+import { BrainBreak, WindowTimer } from '@/components/BrainBreak'
 
 export default function WindowDetail() {
   const { groupId, windowNumber } = useParams<{
@@ -196,6 +197,8 @@ export default function WindowDetail() {
 
         <div className="wm-spacer" />
 
+        <WindowTimer resetKey={`${groupId}-${winNum}`} />
+
         {winNum > 1 && (
           <button
             className="wm-btn"
@@ -382,6 +385,8 @@ export default function WindowDetail() {
       <div className="wm-footer-credit">
         פיתוח, בנייה ועיצוב — ארגון חותם, אחריות לחינוך בישראל
       </div>
+
+      <BrainBreak groupId={groupId} windowNumber={winNum} />
     </main>
   )
 }
