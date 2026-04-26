@@ -70,7 +70,7 @@ export const DEFAULT_LABELS: Record<string, string> = {
   session_cycle_label: 'אדוות · מחזור ז׳',
 
   // Landing — Hero
-  landing_kicker: 'אדוות · מחזור ז׳ · יולי 2026',
+  landing_kicker: 'אדוות · מחזור ז׳ · אפריל 2026',
   landing_title_line1: 'מודל',
   landing_title_line2: 'תשעת החלונות.',
   landing_title_em_line1: 'קופצים ראש',
